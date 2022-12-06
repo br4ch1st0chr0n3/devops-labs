@@ -11,8 +11,10 @@ from dotenv import dotenv_values
 
 
 def get_application() -> FastAPI:
-    return FastAPI(title = __name__)
+    return FastAPI(title=__name__)
 
+
+n_visits = 0
 offset = dt.timedelta(hours=3)
 tz = dt.timezone(offset, name="MSK")
 
@@ -28,7 +30,6 @@ def get_datetime() -> str:
     return str(datetime.now(tz=tz).strftime("%H:%M:%S"))
 
 
-
 templates = Jinja2Templates(directory="app/templates")
 
 
@@ -42,8 +43,30 @@ async def root(request: Request):
     Returns:
        Any : some template HTML response
     """
+    global n_visits
+    n_visits += 1
+    with open("/visits/data", "w", encoding="utf8") as visits:
+        visits.write(str(n_visits))
     return templates.TemplateResponse(
         "index.jinja", {"request": request, "time_msk": get_datetime()}
+    )
+
+
+@app.get("/visits", response_class=HTMLResponse)
+async def visits_page(request: Request):
+    """GET /visits to show # site visits
+
+    Args:
+        request (Request): dummy request
+
+    Returns:
+       Any : some template HTML response
+    """
+    n_visits = None
+    with open("/visits/data", "r", encoding="utf8") as visits:
+        n_visits = int(visits.read())
+    return templates.TemplateResponse(
+        "visits.jinja", {"request": request, "n_visits": n_visits}
     )
 
 

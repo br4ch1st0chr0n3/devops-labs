@@ -6,6 +6,10 @@ When a server starts, one can open a given address in a browser to see current t
 
 ![demo](README/demo.png)
 
+Also, when opening at `/visits`, one can see the number of the root page visits.
+
+![img](README/visits.png)
+
 ## Best practices
 
 What I did in this project

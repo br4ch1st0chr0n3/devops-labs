@@ -29,6 +29,10 @@ podSecurityContext:
   {}
   # fsGroup: 2000
 
+app:
+  configMap: "sample-configmap"
+  configVolume: "config-vol"
+
 securityContext:
   {}
   # capabilities:

@@ -8,17 +8,20 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import uvicorn
 from dotenv import dotenv_values
-
+    
 
 def get_application() -> FastAPI:
     return FastAPI(title=__name__)
 
 
-n_visits = 0
 offset = dt.timedelta(hours=3)
 tz = dt.timezone(offset, name="MSK")
 
 app = get_application()
+
+visits_data = "/visits/data"
+with open(visits_data, "w", encoding="utf8") as visits:
+    visits.write("0")
 
 
 def get_datetime() -> str:
@@ -43,10 +46,11 @@ async def root(request: Request):
     Returns:
        Any : some template HTML response
     """
-    global n_visits
-    n_visits += 1
-    with open("/visits/data", "w", encoding="utf8") as visits:
-        visits.write(str(n_visits))
+    n_visits = None
+    with open(visits_data, "r", encoding="utf8") as visits:
+        n_visits = int(visits.read())
+    with open(visits_data, "w", encoding="utf8") as visits:
+        visits.write(str(n_visits + 1))
     return templates.TemplateResponse(
         "index.jinja", {"request": request, "time_msk": get_datetime()}
     )
@@ -63,7 +67,7 @@ async def visits_page(request: Request):
        Any : some template HTML response
     """
     n_visits = None
-    with open("/visits/data", "r", encoding="utf8") as visits:
+    with open(visits_data, "r", encoding="utf8") as visits:
         n_visits = int(visits.read())
     return templates.TemplateResponse(
         "visits.jinja", {"request": request, "n_visits": n_visits}

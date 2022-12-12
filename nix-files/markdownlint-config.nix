@@ -1,3 +1,3 @@
 {
-  
+  "line-length" = false;
 }

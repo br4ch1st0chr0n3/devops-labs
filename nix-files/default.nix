@@ -133,9 +133,8 @@ let
     };
     installHelmPlugins = {
       text = ''
-        printf "${framedNewlines "installing helm plugins into ${helmPluginsPath}"}"
+        printf "${framedNewlines "installing helm plugins into $PWD/${helmPluginsPath}"}"
         ${setHelmEnv}
-        set +e
         helm plugin install https://github.com/databus23/helm-diff || echo "installed 'helm-diff'"
         helm plugin install https://github.com/jkroepke/helm-secrets || echo "installed 'helm-secrets'"
       '';
@@ -149,8 +148,6 @@ let
 
   helmPluginsPath = "helm/plugins";
   setHelmEnv = ''
-    mkdir -p 
-
     export HELM_PLUGINS=$PWD/${helmPluginsPath}
     mkdir -p $HELM_PLUGINS
     

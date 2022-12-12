@@ -44,6 +44,8 @@ volumes:
         requests:
           storage: 128Mi
 
+serviceName: app-python-chart
+
 securityContext:
   {}
   # capabilities:

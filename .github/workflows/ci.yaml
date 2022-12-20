@@ -10,13 +10,15 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          path: .actions
+          repository: deemp/workflows
+      - name: Prepare Nix
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build app
         run: nix run .#build
       - continue-on-error: true
@@ -39,13 +41,15 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          path: .actions
+          repository: deemp/workflows
+      - name: Prepare Nix
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Linting
         run: nix run .#lint
       - continue-on-error: true
@@ -62,15 +66,17 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          path: .actions
+          repository: deemp/workflows
+      - name: Prepare Nix
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Log in to Cachix
-        uses: cachix/cachix-action@v11
+        uses: cachix/cachix-action@v12
         with:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           name: ${{ secrets.CACHIX_CACHE }}
@@ -81,15 +87,17 @@ jobs:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          path: .actions
+          repository: deemp/workflows
+      - name: Prepare Nix
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Log in to Cachix
-        uses: cachix/cachix-action@v11
+        uses: cachix/cachix-action@v12
         with:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           name: ${{ secrets.CACHIX_CACHE }}
@@ -100,13 +108,15 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          path: .actions
+          repository: deemp/workflows
+      - name: Prepare Nix
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure git
         run: |
           git config user.name github-actions
@@ -114,7 +124,7 @@ jobs:
       - name: Update locks
         run: "git pull --rebase --autostash\nnix run .#updateLocks \ngit diff --exit-code || git commit -a -m 'action: update flake.lock-s'\ngit push\n\n"
       - name: Log in to Cachix
-        uses: cachix/cachix-action@v11
+        uses: cachix/cachix-action@v12
         with:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           name: ${{ secrets.CACHIX_CACHE }}
@@ -125,15 +135,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - name: Checkout workflows repo
+        uses: actions/checkout@v3
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-          install_url: https://releases.nixos.org/nix/nix-2.11.1/install
+          path: .actions
+          repository: deemp/workflows
+      - name: Prepare Nix
+        uses: ./.actions/.github/actions/prepare-nix
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Log in to Cachix
-        uses: cachix/cachix-action@v11
+        uses: cachix/cachix-action@v12
         with:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           name: ${{ secrets.CACHIX_CACHE }}

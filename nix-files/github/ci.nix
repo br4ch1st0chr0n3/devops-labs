@@ -11,12 +11,6 @@ let
   macos11 = "macos-11";
   CACHIX_CACHE_ = "CACHIX_CACHE";
   mainOS = ubuntu20;
-  extraNixConfig = ''
-    access-tokens = github.com=${expr ns.secrets.GITHUB_TOKEN}
-    substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://hydra.iohk.io https://haskell-language-server.cachix.org https://deemp.cachix.org
-    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8= deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=
-  '';
-  installURL = https://releases.nixos.org/nix/nix-2.11.1/install;
   configGitActions = ''
     git config user.name github-actions
     git config user.email github-actions@github.com
@@ -25,7 +19,7 @@ let
   apps = [ appPurescript appPython ];
   oss = [ ubuntu20 ubuntu22 ];
 
-  expr = exp: "$" + "{{ ${builtins.toString exp} }}";
+  expr = exp: "\${{ ${builtins.toString exp} }}";
   mkAccessor = name: attrs@{ ... }: builtins.mapAttrs (name_: _: "${name}.${name_}") attrs;
   mkAccessors = attrs@{ ... }: builtins.mapAttrs mkAccessor attrs;
   insertListIf = cond: list: if cond then list else [ ];
@@ -55,13 +49,24 @@ let
         authToken = expr ns.secrets.CACHIX_AUTH_TOKEN;
       };
     };
-    installNix = {
-      uses = "cachix/install-nix-action@v18";
-      "with" = {
-        extra_nix_config = extraNixConfig;
-        install_url = installURL;
-      };
-    };
+    # checkoutWorkflowsRepo = ;
+    installNix = [
+      {
+        name = "Checkout workflows repo";
+        uses = "actions/checkout@v3";
+        "with" = {
+          repository = "deemp/workflows";
+          path = ".actions";
+        };
+      }
+      {
+        name = "Prepare Nix";
+        uses = "./.actions/.github/actions/prepare-nix";
+        "with" = {
+          GITHUB_TOKEN = expr ns.secrets.GITHUB_TOKEN;
+        };
+      }
+    ];
     checkout = { uses = "actions/checkout@v3"; };
   };
 
@@ -108,8 +113,9 @@ let
           runs-on = "ubuntu-20.04";
           steps = [
             { uses = "actions/checkout@v3"; }
-            actions.installNix
           ]
+          ++
+          actions.installNix
           ++
           (
             # - No need to lint PureScript since it's strongly statically typed
@@ -206,8 +212,9 @@ let
           runs-on = os;
           steps = [
             actions.checkout
-            actions.installNix
           ]
+          ++
+          actions.installNix
           ++
           (insertListIf (os == mainOS)
             [

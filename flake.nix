@@ -1,21 +1,21 @@
 {
   inputs = {
-    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
+    nixpkgs_.url = "github:deemp/flakes?dir=source-flake/nixpkgs";
     nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
+    flake-utils_.url = "github:deemp/flakes?dir=source-flake/flake-utils";
     flake-utils.follows = "flake-utils_/flake-utils";
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
-    flakes-tools.url = github:deemp/flakes?dir=flakes-tools;
-    terrafix.url = github:deemp/terrafix;
-    easy-purescript-nix_.url = github:deemp/flakes?dir=source-flake/easy-purescript-nix;
-    python-tools.url = github:deemp/flakes?dir=language-tools/python;
-    my-codium.url = github:deemp/flakes?dir=codium;
-    my-devshell.url = github:deemp/flakes?dir=devshell;
-    env2json.url = github:deemp/flakes?dir=env2json;
-    json2md.url = github:deemp/flakes?dir=json2md;
-    easy-purescript-nix.url = github:deemp/flakes?dir=source-flake/easy-purescript-nix;
-    app-python.url = "github:deemp/devops-labs/lab3?dir=app_python";
-    app-purescript.url = "github:deemp/devops-labs/lab3?dir=app_purescript";
+    drv-tools.url = "github:deemp/flakes?dir=drv-tools";
+    flakes-tools.url = "github:deemp/flakes?dir=flakes-tools";
+    terrafix.url = "github:deemp/flakes?dir=terrafix";
+    easy-purescript-nix_.url = "github:deemp/flakes?dir=source-flake/easy-purescript-nix";
+    python-tools.url = "github:deemp/flakes?dir=language-tools/python";
+    my-codium.url = "github:deemp/flakes?dir=codium";
+    my-devshell.url = "github:deemp/flakes?dir=devshell";
+    env2json.url = "github:deemp/flakes?dir=env2json";
+    json2md.url = "github:deemp/flakes?dir=json2md";
+    easy-purescript-nix.url = "github:deemp/flakes?dir=source-flake/easy-purescript-nix";
+    app-python.url = "github:deemp/devops-labs/master?dir=app_python";
+    app-purescript.url = "github:deemp/devops-labs/master?dir=app_purescript";
   };
   outputs =
     { self

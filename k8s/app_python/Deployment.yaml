@@ -24,3 +24,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-python-config
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"

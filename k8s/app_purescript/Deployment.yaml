@@ -24,3 +24,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-purescript-config
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"

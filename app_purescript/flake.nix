@@ -1,61 +1,47 @@
 {
-  description = "app_purescript flake";
-
-  inputs = {
-    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
-    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
-    easy-purescript-nix_.url = github:deemp/flakes?dir=source-flake/easy-purescript-nix;
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
-    python-tools.url = github:deemp/flakes?dir=language-tools/python;
-    my-devshell.url = github:deemp/flakes?dir=devshell;
-    nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils.follows = "flake-utils_/flake-utils";
-    easy-purescript-nix.follows = "easy-purescript-nix_/easy-purescript-nix";
-  };
+  description = "PureScript app flake";
+  inputs = { };
 
   outputs =
-    { self
-    , nixpkgs
-    , easy-purescript-nix
-    , flake-utils
-    , drv-tools
-    , python-tools
-    , my-devshell
-    , ...
-    }:
-      with flake-utils.lib;
-      eachDefaultSystem
-        (system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          inherit (drv-tools.functions.${system})
-            mkShellApps
-            ;
+    inputs@{ self, ... }:
+    let
+      inputs_ =
+        let flakes = (import ../.).outputs.inputs.flakes; in
+        {
+          inherit (flakes.source-flake) flake-utils nixpkgs;
+          inherit (flakes) codium drv-tools devshell;
+          purescript-tools = flakes.language-tools.purescript;
+          python-tools = flakes.language-tools.python;
+        };
 
-          tools = {
-            inherit (import easy-purescript-nix { inherit pkgs; }) purs-0_15_4 spago;
-            inherit (pkgs) nodejs-16_x;
-          };
+      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
 
-          psInputs = builtins.attrValues tools;
-          scripts =
-            let build = ''npm run build''; in
-            mkShellApps
-              {
-                run-start =
-                  {
-                    runtimeInputs = psInputs;
-                    text =
-                      let
-                        # so that .env can later be ignored
-                        dotenvFile = "app.env";
-                      in
-                      ''
-                        ${build}
-                        source ${dotenvFile}
-                        npx parcel serve -p $PORT --host $HOST dev/index.html
-                      '';
-                  };
+      outputs_ =
+        inputs__:
+        let inputs = inputs_ // inputs__; in
+        inputs.flake-utils.lib.eachDefaultSystem
+          (system:
+          let
+            pkgs = inputs.nixpkgs.legacyPackages.${system};
+            inherit (inputs.drv-tools.lib.${system}) mkShellApps;
+            inherit (inputs.purescript-tools.packages.${system}) purescript spago nodejs_18;
+            inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands;
+            inherit (inputs.python-tools.lib.${system}) activateVenv;
+
+            tools = [ purescript spago nodejs_18 ];
+
+            packages =
+              let build = ''npm run build''; in
+              mkShellApps {
+                run-start = {
+                  runtimeInputs = tools;
+                  text = ''
+                    ${build}
+                    source ${./app.env}
+                    npx parcel serve -p $PORT --host $HOST dev/index.html
+                  '';
+                  description = "run app";
+                };
                 test = {
                   # https://github.com/mozilla/geckodriver/releases/tag/v0.31.0
                   text = ''
@@ -70,56 +56,33 @@
                     poetry run pytest -rX --rootdir test --driver Firefox
                     kill $parcel_pid || echo "test finished"
                   '';
-                  runtimeInputs = psInputs ++ [ pkgs.poetry pkgs.geckodriver pkgs.firefox ];
+                  runtimeInputs = tools ++ [ pkgs.poetry pkgs.geckodriver pkgs.firefox ];
+                  description = "test app";
                 };
                 build = {
-                  text = ''
-                    ${build}
-                  '';
-                  runtimeInputs = psInputs;
+                  text = build;
+                  runtimeInputs = tools;
+                  description = "lint app";
                 };
               };
-          devshell = my-devshell.devshell.${system};
-          inherit (python-tools.snippets.${system}) activateVenv;
-          devShells.default = devshell.mkShell {
-            packages = builtins.attrValues scripts ++ [ pkgs.poetry ];
-            bash.extra = activateVenv;
-            commands = [
-              {
-                name = "${scripts.run-start.name}";
-                category = "scripts";
-                help = "start app";
-              }
-              {
-                name = "${scripts.test.name}";
-                category = "scripts";
-                help = "test app";
-              }
-              {
-                name = "${scripts.build.name}";
-                category = "scripts";
-                help = "build app";
-              }
-              {
-                name = "poetry";
-              }
-            ];
-          };
-        in
-        {
-          inherit scripts;
-          packages = scripts;
-          inherit devShells;
-        });
+            devShells.default = mkShell {
+              packages = [ pkgs.poetry ] ++ tools;
+              bash.extra = activateVenv;
+              commands = mkRunCommands "scripts" { inherit (packages) run-start test build; };
+            };
+          in
+          {
+            inherit devShells packages;
+          });
+    in
+    outputs;
   nixConfig = {
     extra-substituters = [
-      https://haskell-language-server.cachix.org
       https://nix-community.cachix.org
       https://hydra.iohk.io
       https://deemp.cachix.org
     ];
     extra-trusted-public-keys = [
-      haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8=
       nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
       hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
       deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=

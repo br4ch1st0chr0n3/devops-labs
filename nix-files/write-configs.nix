@@ -4,25 +4,21 @@
 , pkgs
 , commands
 , env2json
-, my-codium
+, codium
 , terrafix
 }:
 let
-  inherit (drv-tools.functions.${system})
+  inherit (drv-tools.lib.${system})
     mkShellApp writeJSON framedBrackets mkBin
-    withLongDescription concatStringsNewline
+    concatStringsNewline mkBinName writeYAML
     concatMapStringsNewline withMan indentStrings4
-    mkBinName writeYAML;
-  man = drv-tools.configs.${system}.man;
-  inherit (my-codium.configs.${system})
-    settingsNix;
-  inherit (my-codium.functions.${system})
-    writeSettingsJSON writeTasksJSON;
-  inherit (import ./data.nix)
-    commandNames taskNames appPurescript
-    appPython DOCKER_PORT HOST_PORT;
+    ;
+  man = drv-tools.lib.${system}.man;
+  inherit (codium.lib.${system}) settingsNix;
+  inherit (codium.lib.${system}) writeSettingsJSON writeTasksJSON;
+  inherit (import ./data.nix) commandNames taskNames appPurescript appPython DOCKER_PORT HOST_PORT;
   inherit (builtins) map;
-  inherit (json2md.functions.${system}) nix2md;
+  inherit (json2md.lib.${system}) nix2md;
 
   # all scripts assume calling from the $PROJECT_ROOT
   writeDocs = nix2md "README/docs.md" (import ./docs.nix { inherit pkgs env2json system; });
@@ -32,7 +28,7 @@ let
 
   writeTerraform =
     let
-      inherit (terrafix.functions.${system}) writeFiles;
+      inherit (terrafix.lib.${system}) writeFiles;
       docker = import ./terraform/docker.nix { inherit pkgs system terrafix; };
       yc = import ./terraform/yc.nix { inherit pkgs system terrafix; };
       github = import ./terraform/github.nix { inherit pkgs system terrafix; };
@@ -54,8 +50,8 @@ let
   writeWorkflows = writeYAML "workflows" ".github/workflows/ci.yaml" (
     import ./github/ci.nix { inherit appPurescript appPython pkgs drv-tools system; }
   );
-  
-  writeConfigs =
+
+  writelib =
     let writers = [
       writeSettings
       writeTasks
@@ -66,9 +62,9 @@ let
     withMan
       (
         mkShellApp {
-          name = "write-configs";
+          name = "write-lib";
           text = concatMapStringsNewline mkBin writers;
-          description = "Write configs using the available config writers";
+          description = "Write lib using the available config writers";
         }
       )
       (x: ''
@@ -85,6 +81,6 @@ in
     writeTasks
     writeSettings
     writeMarkdownlintConfig
-    writeConfigs
+    writelib
     ;
 }

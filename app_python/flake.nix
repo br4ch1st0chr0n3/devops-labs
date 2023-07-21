@@ -1,40 +1,29 @@
 {
-  description = "app_python flake";
-
-  inputs = {
-    nixpkgs_.url = github:deemp/flakes?dir=source-flake/nixpkgs;
-    flake-utils_.url = github:deemp/flakes?dir=source-flake/flake-utils;
-    drv-tools.url = github:deemp/flakes?dir=drv-tools;
-    python-tools.url = github:deemp/flakes?dir=language-tools/python;
-    nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils.follows = "flake-utils_/flake-utils";
-    my-devshell.url = github:deemp/flakes?dir=devshell;
-  };
+  description = "Python app flake";
+  inputs = { };
 
   outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , drv-tools
-    , python-tools
-    , my-devshell
-    , ...
-    }:
-      with flake-utils.lib;
-      eachDefaultSystem
-        (system:
+    inputs@{ self, ... }:
+    let
+      inputs_ =
+        let flakes = (import ../.).outputs.inputs.flakes; in
+        {
+          inherit (flakes.source-flake) flake-utils nixpkgs;
+          inherit (flakes) codium drv-tools devshell;
+          python-tools = flakes.language-tools.python;
+        };
+
+      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
+
+      outputs_ =
+        inputs__:
+        let inputs = inputs_ // inputs__; in
+        inputs.flake-utils.lib.eachDefaultSystem (system:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
-
-          dotenvFile = "app.env";
-
-          inherit (drv-tools.functions.${system})
-            mkShellApp
-            mkShellApps
-            mkDevShellsWithDefault
-            mkBin
-            applyN
-            ;
+          pkgs = inputs.nixpkgs.legacyPackages.${system};
+          inherit (inputs.drv-tools.lib.${system}) mkShellApp mkShellApps mkDevShellsWithDefault mkBin applyN;
+          inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands mkCommands;
+          inherit (inputs.python-tools.lib.${system}) activateVenv;
 
           whenRootAtDepth = depth: ''when inside `$PROJECT_ROOT/${builtins.baseNameOf ./.}`'';
 
@@ -47,70 +36,47 @@
             ${command}
             echo ""
           '';
-          inherit (python-tools.snippets.${system}) activateVenv;
-          scripts = mkShellApps {
+
+          tools = [ pkgs.poetry ];
+
+          packages = mkShellApps {
             run-start =
-              let appName = (pkgs.lib.modules.importTOML ./pyproject.toml).config.tool.poetry.name;
-              in
+              let appName = (pkgs.lib.modules.importTOML ./pyproject.toml).config.tool.poetry.name; in
               {
-                text = withoutErrors ''
-                  poetry run ${appName}
-                '';
-                longDescription = ''Run `${appName}` ${whenRootAtDepth 2}'';
+                text = withoutErrors '' poetry run ${appName}'';
+                description = "start app";
                 runtimeInputs = [ pkgs.poetry ];
               };
             test = {
-              text = withoutErrors ''
-                poetry run pytest -rX || echo ""
-              '';
+              text = withoutErrors ''poetry run pytest -rX'';
+              description = "test app";
               runtimeInputs = [ pkgs.poetry ];
             };
             lint = {
-              text = withoutErrors ''
-                poetry run pylint app
-              '';
+              text = withoutErrors ''poetry run pylint app'';
+              description = "lint app";
               runtimeInputs = [ pkgs.poetry ];
             };
           };
-          devshell = my-devshell.devshell.${system};
         in
         {
-          packages = scripts;
-          inherit scripts;
-          devShells.default = devshell.mkShell {
-            packages = builtins.attrValues scripts ++ [ pkgs.poetry ];
+          devShells.default = mkShell {
+            packages = [ pkgs.poetry ];
             bash.extra = activateVenv;
-            commands = [
-              {
-                name = "${scripts.run-start.name}";
-                category = "scripts";
-                help = "start app";
-              }
-              {
-                name = "${scripts.test.name}";
-                category = "scripts";
-                help = "test app";
-              }
-              {
-                name = "${scripts.lint.name}";
-                category = "scripts";
-                help = "lint Python code";
-              }
-              {
-                name = "poetry";
-              }
-            ];
+            commands =
+              mkRunCommands "scripts" { inherit (packages) run-start test lint; }
+              ++ mkCommands "tools" tools;
           };
         });
+    in
+    outputs;
   nixConfig = {
     extra-substituters = [
-      https://haskell-language-server.cachix.org
       https://nix-community.cachix.org
       https://hydra.iohk.io
       https://deemp.cachix.org
     ];
     extra-trusted-public-keys = [
-      haskell-language-server.cachix.org-1:juFfHrwkOxqIOZShtC4YC1uT1bBcq2RSvC7OMKx0Nz8=
       nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
       hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
       deemp.cachix.org-1:o1FA93L5vL4LWi+jk2ECFk1L1rDlMoTH21R1FHtSKaU=

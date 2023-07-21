@@ -5,7 +5,7 @@
 }:
 let
   pkgs = inputs.nixpkgs.legacyPackages.${system};
-  inherit (inputs.codium.lib.${system}) mkCodium extensions;
+  inherit (inputs.codium.lib.${system}) mkCodium extensions extensionsCommon settingsCommonNix settingsCommon;
   inherit (inputs.drv-tools.lib.${system}) toList mkShellApp mkShellApps mkBin framedBrackets framedNewlines;
   inherit (inputs.flakes-tools.lib.${system}) mkFlakesTools;
   inherit (inputs.devshell.lib.${system}) mkCommands mkRunCommands mkShell;
@@ -16,7 +16,7 @@ let
   writeConfigs =
     (import ./write-configs.nix
       {
-        inherit (inputs) json2md env2json terrafix drv-tools codium;
+        inherit (inputs) json2md env2json terrafix drv-tools workflows codium;
         inherit system pkgs commands;
       }
     );
@@ -101,21 +101,17 @@ let
       createVenvs = createVenvs [ appPython appPurescript ];
     };
 
-  packages = tools // {
+  packages = {
     codium = mkCodium {
-      extensions = {
-        inherit (extensions)
-          nix markdown purescript github misc docker python toml fish yaml
-          kubernetes terraform
-          ;
+      extensions = extensionsCommon // {
+        inherit (extensions) purescript docker python toml fish kubernetes terraform;
       };
-      runtimeDependencies = attrValues tools;
     };
     inherit (mkFlakesTools { dirs = [ appPurescript appPython "." ]; inherit root; }) updateLocks saveFlakes;
   }
-    // writeConfigs
-    // commands.apps
-    // scripts;
+  // writeConfigs
+  // commands.apps
+  // scripts;
 
   devShells.default = mkShell {
     bash.extra = "";

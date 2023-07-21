@@ -1,6 +1,7 @@
 { json2md
 , system
 , drv-tools
+, workflows
 , pkgs
 , commands
 , env2json
@@ -48,7 +49,7 @@ let
     ];
 
   writeWorkflows = writeYAML "workflows" ".github/workflows/ci.yaml" (
-    import ./github/ci.nix { inherit appPurescript appPython pkgs drv-tools system; }
+    import ./github/ci.nix { inherit appPurescript appPython pkgs drv-tools workflows system; }
   );
 
   writelib =

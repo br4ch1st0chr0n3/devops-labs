@@ -1,7 +1,10 @@
-# TODO
-{ appPurescript, appPython, pkgs, drv-tools, system }:
+{ appPurescript, appPython, pkgs, drv-tools, workflows, system }:
 let
-  inherit (drv-tools.functions.${system}) mergeValues;
+  inherit (drv-tools.lib.${system}) mergeValues;
+  inherit (drv-tools.lib.${system}) mkAccessors genAttrsId;
+  inherit (workflows.lib.${system}) expr names;
+  inherit (pkgs.lib.attrsets) genAttrs mapAttrsRecursive;
+
   name = "Caching";
   ubuntu20 = "ubuntu-20.04";
   ubuntu22 = "ubuntu-22.04";
@@ -19,37 +22,18 @@ let
   apps = [ appPurescript appPython ];
   oss = [ ubuntu20 ubuntu22 ];
 
-  expr = exp: "\${{ ${builtins.toString exp} }}";
-  mkAccessor = name: attrs@{ ... }: builtins.mapAttrs (name_: _: "${name}.${name_}") attrs;
-  mkAccessors = attrs@{ ... }: builtins.mapAttrs mkAccessor attrs;
   insertListIf = cond: list: if cond then list else [ ];
-  inherit (pkgs.lib.attrsets) genAttrs;
   changed-files-app = app: "changed-files-${app}";
-
-  ns = mkAccessors {
-    secrets = {
-      SNYK_TOKEN = "";
-      CACHIX_CACHE = "";
-      CACHIX_AUTH_TOKEN = "";
-      GITHUB_TOKEN = "";
-      DOCKER_HUB_PAT = "";
-      DOCKER_HUB_USERNAME = "";
-    };
-    github = {
-      sha = "";
-    };
-  };
 
   actions = {
     logInToCachix = {
       name = "Log in to Cachix";
       uses = "cachix/cachix-action@v12";
       "with" = {
-        name = expr ns.secrets.CACHIX_CACHE;
-        authToken = expr ns.secrets.CACHIX_AUTH_TOKEN;
+        name = expr names.secrets.CACHIX_CACHE;
+        authToken = expr names.secrets.CACHIX_AUTH_TOKEN;
       };
     };
-    # checkoutWorkflowsRepo = ;
     installNix = [
       {
         name = "Checkout workflows repo";
@@ -63,7 +47,7 @@ let
         name = "Prepare Nix";
         uses = "./.actions/.github/actions/prepare-nix";
         "with" = {
-          GITHUB_TOKEN = expr ns.secrets.GITHUB_TOKEN;
+          GITHUB_TOKEN = expr names.secrets.GITHUB_TOKEN;
         };
       }
     ];
@@ -146,7 +130,7 @@ let
                 args = "--all-projects";
               };
               env = {
-                SNYK_TOKEN = expr ns.secrets.SNYK_TOKEN;
+                SNYK_TOKEN = expr names.secrets.SNYK_TOKEN;
               };
             }
             {
@@ -174,7 +158,7 @@ let
             id = changed-files_;
             uses = "tj-actions/changed-files@v32";
             "with" = {
-              sha = expr ns.github.sha;
+              sha = expr names.github.sha;
               files = "${app}/**";
             };
           }
@@ -233,7 +217,7 @@ let
             actions.logInToCachix
             {
               name = "Cache flakes";
-              run = "${CACHIX_CACHE_}=${expr ns.secrets.CACHIX_CACHE } nix run .#pushToCachix";
+              run = "${CACHIX_CACHE_}=${expr names.secrets.CACHIX_CACHE } nix run .#pushToCachix";
             }
           ];
         }
@@ -269,21 +253,21 @@ let
               name = "Log in to Docker Hub";
               uses = "docker/login-action@v2";
               "with" = {
-                username = expr ns.secrets.DOCKER_HUB_USERNAME;
-                password = expr ns.secrets.DOCKER_HUB_PAT;
+                username = expr names.secrets.DOCKER_HUB_USERNAME;
+                password = expr names.secrets.DOCKER_HUB_PAT;
               };
             }
             {
               name = "Build and push";
               uses = "docker/build-push-action@v3";
               env = {
-                DOCKER_NAME = expr ns.secrets.DOCKER_HUB_USERNAME;
+                DOCKER_NAME = expr names.secrets.DOCKER_HUB_USERNAME;
               };
               "with" = {
                 # https://github.com/docker/build-push-action#path-context
                 context = app;
                 push = true;
-                tags = "${expr ns.secrets.DOCKER_HUB_USERNAME}/${app}:latest";
+                tags = "${expr names.secrets.DOCKER_HUB_USERNAME}/${app}:latest";
               };
             }
           ];

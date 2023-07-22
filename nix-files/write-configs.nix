@@ -1,38 +1,32 @@
-{ json2md
+{ inputs
 , system
-, drv-tools
-, workflows
 , pkgs
 , commands
-, env2json
-, codium
-, terrafix
 }:
 let
-  inherit (drv-tools.lib.${system})
+  inherit (inputs.drv-tools.lib.${system})
     mkShellApp writeJSON framedBrackets mkBin
     concatStringsNewline mkBinName writeYAML
     concatMapStringsNewline withMan indentStrings4
     ;
-  man = drv-tools.lib.${system}.man;
-  inherit (codium.lib.${system}) settingsNix;
-  inherit (codium.lib.${system}) writeSettingsJSON writeTasksJSON;
+  man = inputs.drv-tools.lib.${system}.man;
+  inherit (inputs.codium.lib.${system}) settingsNix writeSettingsJSON writeTasksJSON;
   inherit (import ./data.nix) commandNames taskNames appPurescript appPython DOCKER_PORT HOST_PORT;
+  inherit (inputs.json2md.lib.${system}) nix2md;
   inherit (builtins) map;
-  inherit (json2md.lib.${system}) nix2md;
 
   # all scripts assume calling from the $PROJECT_ROOT
-  writeDocs = nix2md "README/docs.md" (import ./docs.nix { inherit pkgs env2json system; });
+  writeDocs = nix2md "README/docs.md" (import ./docs.nix { inherit pkgs inputs system; });
   writeMarkdownlintConfig = writeJSON "markdownlint" ".markdownlint.jsonc" (import ./markdownlint-config.nix);
   writeSettings = writeSettingsJSON (import ./settings.nix { inherit settingsNix pkgs mkBinName; });
-  writeTasks = writeTasksJSON (import ./tasks.nix { inherit commands drv-tools system; });
+  writeTasks = writeTasksJSON (import ./tasks.nix { inherit commands inputs system; });
 
   writeTerraform =
     let
-      inherit (terrafix.lib.${system}) writeFiles;
-      docker = import ./terraform/docker.nix { inherit pkgs system terrafix; };
-      yc = import ./terraform/yc.nix { inherit pkgs system terrafix; };
-      github = import ./terraform/github.nix { inherit pkgs system terrafix; };
+      inherit (inputs.terrafix.lib.${system}) writeFiles;
+      docker = import ./terraform/docker.nix { inherit pkgs system inputs; };
+      yc = import ./terraform/yc.nix { inherit pkgs system inputs; };
+      github = import ./terraform/github.nix { inherit pkgs system inputs; };
       dirDocker = "terraform/docker";
       dirYC = "terraform/yandex-cloud";
       dirGithub = "terraform/github";
@@ -49,7 +43,7 @@ let
     ];
 
   writeWorkflows = writeYAML "workflows" ".github/workflows/ci.yaml" (
-    import ./github/ci.nix { inherit appPurescript appPython pkgs drv-tools workflows system; }
+    import ./github/ci.nix { inherit appPurescript appPython pkgs system inputs; }
   );
 
   writelib =

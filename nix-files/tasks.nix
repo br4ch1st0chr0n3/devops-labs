@@ -1,13 +1,7 @@
-{ commands, drv-tools, system }:
+{ commands, system }:
 let
-  inherit (import ./data.nix)
-    commandNames
-    langs
-    taskNames
-    actionNames
-    appName
-    ;
-  inherit (drv-tools.functions.${system}) mkBin;
+  inherit (import ./data.nix) commandNames langs taskNames actionNames appName;
+  inherit (inputs.drv-tools.lib.${system}) mkBin;
   tasksLang = lang:
     let
       taskNames_ = taskNames.apps lang;

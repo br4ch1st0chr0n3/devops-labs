@@ -1,58 +1,13 @@
-{ appPurescript, appPython, pkgs, drv-tools, workflows, system }:
+{ appPurescript, appPython, pkgs, system, inputs }:
 let
-  inherit (drv-tools.lib.${system}) mergeValues;
-  inherit (drv-tools.lib.${system}) mkAccessors genAttrsId;
-  inherit (workflows.lib.${system}) expr names;
-  inherit (pkgs.lib.attrsets) genAttrs mapAttrsRecursive;
+  inherit (inputs.drv-tools.lib.${system}) mergeValues mkAccessors genAttrsId singletonIf;
+  inherit (inputs.workflows.lib.${system}) expr steps job job_ names os run;
+  inherit (pkgs.lib.attrsets) genAttrs mapAttrsRecursive recursiveUpdate;
+  inherit (pkgs.lib.lists) flatten imap0;
 
-  name = "Caching";
-  ubuntu20 = "ubuntu-20.04";
-  ubuntu22 = "ubuntu-22.04";
-  ubuntu20_ = "ubuntu-20";
-  ubuntu22_ = "ubuntu-22";
-  macos12 = "macos-12";
-  macos11 = "macos-11";
-  CACHIX_CACHE_ = "CACHIX_CACHE";
-  mainOS = ubuntu20;
-  configGitActions = ''
-    git config user.name github-actions
-    git config user.email github-actions@github.com
-  '';
+  name = "CI";
 
   apps = [ appPurescript appPython ];
-  oss = [ ubuntu20 ubuntu22 ];
-
-  insertListIf = cond: list: if cond then list else [ ];
-  changed-files-app = app: "changed-files-${app}";
-
-  actions = {
-    logInToCachix = {
-      name = "Log in to Cachix";
-      uses = "cachix/cachix-action@v12";
-      "with" = {
-        name = expr names.secrets.CACHIX_CACHE;
-        authToken = expr names.secrets.CACHIX_AUTH_TOKEN;
-      };
-    };
-    installNix = [
-      {
-        name = "Checkout workflows repo";
-        uses = "actions/checkout@v3";
-        "with" = {
-          repository = "deemp/workflows";
-          path = ".actions";
-        };
-      }
-      {
-        name = "Prepare Nix";
-        uses = "./.actions/.github/actions/prepare-nix";
-        "with" = {
-          GITHUB_TOKEN = expr names.secrets.GITHUB_TOKEN;
-        };
-      }
-    ];
-    checkout = { uses = "actions/checkout@v3"; };
-  };
 
   on = {
     schedule = [
@@ -65,7 +20,56 @@ let
     workflow_dispatch = { };
   };
 
-  app-ci =
+  mkJobApp = jobId: app: "${jobId}-${app}";
+
+  jobInit.name = "_1_init";
+  jobInit.value = job {
+    runsOn = os.ubuntu-22;
+    name = "Initial Nix CI";
+    strategy = { };
+    doSaveFlakes = false;
+    doUpdateLocks = true;
+    doFormat = true;
+    doCommit = true;
+    cacheNixArgs = {
+      linuxGCEnabled = true;
+      # linuxMaxStoreSize = 0;
+    };
+  };
+
+  jobChangedFiles.name = "_2_changed-files";
+  jobChangedFiles.value =
+    let stepId = "changed-files"; in
+    genAttrs apps (app:
+      {
+        name = "Check if ${app} has any modified files";
+        runs-on = os.ubuntu-22;
+        needs = [ jobInit.name ];
+        outputs = {
+          "${app}" = expr "steps.${stepId}.outputs.any_modified";
+        };
+        steps = [
+          (steps.checkout // { "with".fetch-depth = 0; })
+          {
+            name = "Get changed files";
+            id = stepId;
+            uses = "tj-actions/changed-files@v37";
+            "with" = {
+              sha = expr names.github.sha;
+              files = "${app}/**";
+            };
+          }
+          {
+            name = "List changed files";
+            "if" = "steps.${stepId}.outputs.any_modified == 'true'";
+            run = ''echo "${expr "steps.${stepId}.outputs.all_changed_files" }"'';
+          }
+        ];
+      }
+    );
+
+  jobCI.name = "_3_app-ci";
+  jobCI.value =
     let
       matrix = {
         "${appPurescript}" = {
@@ -83,48 +87,45 @@ let
       };
     in
     builtins.mapAttrs
-      (app: val:
-        let changed-files-app_ = changed-files-app app; in
+      (app: appMatrix:
+        let jobId = mkJobApp jobChangedFiles.name app; in
         {
-          name = "CI for ${app}";
-          needs = [ changed-files-app_ ];
-          "if" = "needs.${changed-files-app_}.outputs.${app} == 'true'";
+          needs = [ jobId ];
+          "if" = "needs.${jobId}.outputs.${app} == 'true'";
           defaults = {
             run = {
               working-directory = app;
             };
           };
-          runs-on = "ubuntu-20.04";
-          steps = [
-            { uses = "actions/checkout@v3"; }
-          ]
-          ++
-          actions.installNix
-          ++
-          (
-            # - No need to lint PureScript since it's strongly statically typed
-            insertListIf (app == appPython) [
-              {
-                name = "Linting";
-                run = "nix run .#lint";
+        } //
+        (job {
+          name = "CI for ${app}";
+          strategy.matrix.os = [ os.ubuntu-22 os.macos-12 ];
+          doCacheNix = true;
+          cacheNixArgs = {
+            linuxGCEnabled = true;
+            # linuxMaxStoreSize = 0;
+            macosGCEnabled = true;
+            # macosMaxStoreSize = 0;
+          };
+          steps = _: [
+            (
+              # No need to lint PureScript since it's strongly statically typed
+              singletonIf (app == appPython) {
+                name = "Lint app";
+                run = run.nixScript { name = inputs.${app}.packages.${system}.lint.pname; };
               }
-            ]
-          )
-          ++
-          (
-            # No need to build app_python as it's an interpretable lang
-            insertListIf (app == appPurescript) [
-              {
+            )
+            (
+              # No need to build app_python as it's an interpretable lang
+              singletonIf (app == appPurescript) {
                 name = "Build app";
-                run = "nix run .#build";
+                run = run.nixScript { name = inputs.${app}.packages.${system}.build.pname; };
               }
-            ]
-          )
-          ++
-          [
+            )
             {
-              name = "Run Snyk to check for vulnerabilities ${val.snyk.language-title}";
-              uses = "snyk/actions/${ val.snyk.language }@master";
+              name = "Run Snyk to check for vulnerabilities ${appMatrix.snyk.language-title}";
+              uses = "snyk/actions/${ appMatrix.snyk.language }@master";
               continue-on-error = true;
               "with" = {
                 args = "--all-projects";
@@ -134,115 +135,32 @@ let
               };
             }
             {
-              name = "Test";
-              run = "nix run .#test";
+              name = "Test app";
+              run = run.nixScript { name = inputs.${app}.packages.${system}.test.pname; };
             }
           ];
-        })
-      matrix;
-  changed-files_ = "changed-files";
-  changed-files =
-    genAttrs apps (app:
-      {
-        name = "Check if ${app} has any modified files";
-        runs-on = ubuntu20;
-        outputs = {
-          "${app}" = expr "steps.${changed-files_}.outputs.any_modified";
-        };
-        steps = [
-          (actions.checkout // {
-            "with" = { fetch-depth = 0; };
-          })
-          {
-            name = "Get changed files";
-            id = changed-files_;
-            uses = "tj-actions/changed-files@v32";
-            "with" = {
-              sha = expr names.github.sha;
-              files = "${app}/**";
-            };
-          }
-          {
-            name = "List changed files";
-            "if" = "steps.${changed-files_}.outputs.any_modified == 'true'";
-            run = ''
-              echo "One or more files in the docs folder has changed."
-              echo "List all the files that have changed: ${expr "steps.${changed-files_}.outputs.all_changed_files" }"
-            '';
-          }
-        ];
-      }
-    );
-
-  caching =
-    let
-      gitNixAction = { actionName, action, args ? "" }: ''
-        git pull --rebase --autostash
-        nix run ${action} ${args}
-        git diff --exit-code || git commit -a -m 'action: ${actionName}'
-        git push
-      '';
-      matrix = {
-        "${ubuntu20_}" = ubuntu20;
-        "${ubuntu22_}" = ubuntu22;
-        "${macos11}" = macos11;
-        "${macos12}" = macos12;
-      };
-    in
-    builtins.mapAttrs
-      (os_: os:
-        {
-          name = ''Caching on ${ os }'';
-          runs-on = os;
-          steps = [
-            actions.checkout
-          ]
-          ++
-          actions.installNix
-          ++
-          (insertListIf (os == mainOS)
-            [
-              {
-                name = "Configure git";
-                run = configGitActions;
-              }
-              {
-                name = "Update locks";
-                run = ''
-                  ${gitNixAction { actionName = "update flake.lock-s"; action = ".#updateLocks"; }}
-                '';
-              }
-            ]
-          ) ++ [
-            actions.logInToCachix
-            {
-              name = "Cache flakes";
-              run = "${CACHIX_CACHE_}=${expr names.secrets.CACHIX_CACHE } nix run .#pushToCachix";
-            }
-          ];
-        }
-      )
+        }))
       matrix;
 
-  # a.purs.ab
-  push-to-docker-hub =
+  jobDocker.name = "_4_push-to-docker-hub";
+  jobDocker.value =
     genAttrs apps
       (app:
-        let changed-files-app_ = changed-files-app app; in
+        let jobId = mkJobApp jobCI.name app; in
         {
           name = "Push '${app}' to Docker Hub";
-          needs = [ changed-files-app_ ];
-          "if" = "needs.${changed-files-app_}.outputs.${app} == 'true'";
-          runs-on = ubuntu20;
+          needs = [ jobId ];
+          runs-on = os.ubuntu-22;
           steps = [
-            actions.checkout
+            steps.checkout
+            steps.gitPull
             {
               name = "Hadolint Action";
               uses = "hadolint/hadolint-action@v2.0.0";
               "with" = {
                 no-fail = true;
                 verbose = true;
-                dockerfile = "${ app }/Dockerfile";
+                dockerfile = "${app}/Dockerfile";
               };
             }
             {
@@ -274,23 +192,24 @@ let
         });
 
   # app-ci.appPurescript
-  mkJobs = jobs_@{ ... }: mergeValues (mergeValues (
+  mkJobs = jobs_@{ ... }: (mergeValues (
     builtins.mapAttrs
       (
-        name: val: {
-          "${name}" = mergeValues (
-            builtins.mapAttrs
-              (name_: val_: {
-                "${name}-${name_}" = val_;
-              })
-              val
-          );
-        }
+        _: val: mergeValues (
+          builtins.mapAttrs
+            (name_: val_: {
+              "${val.name}-${name_}" = val_;
+            })
+            val.value
+        )
       )
       jobs_
   ));
-  jobs = mkJobs {
-    inherit app-ci changed-files push-to-docker-hub caching;
+  jobs = mkJobs
+    {
+      inherit jobChangedFiles jobCI jobDocker;
+    } // {
+    ${jobInit.name} = jobInit.value;
   };
 in
 {

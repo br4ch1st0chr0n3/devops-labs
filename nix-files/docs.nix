@@ -1,12 +1,6 @@
-{ pkgs, env2json, system }:
+{ pkgs, inputs, system }:
 let
-  inherit (import ./data.nix)
-    appName
-    langs
-    commandNames
-    taskNames
-    actionNames
-    ;
+  inherit (import ./data.nix) appName langs commandNames taskNames actionNames;
   runTask = task: "`Command palette` -> `Tasks: Run Task` -> `${task}`";
   nixDevelop = command: "`${command}`";
   link = title: source: "[${title}](${source})";
@@ -79,7 +73,7 @@ in
 (
   let
     actionNames_ = actionNames.apps // { stop = "stop"; };
-    mkJSON = env2json.functions.${system}.mkJSON;
+    mkJSON = inputs.env2json.lib.${system}.mkJSON;
     ports =
       builtins.foldl' (a: b: a // b) { } (builtins.map
         (lang:

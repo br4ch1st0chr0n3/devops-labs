@@ -1,7 +1,6 @@
 { inputs
 , system
 , root
-,
 }:
 let
   pkgs = inputs.nixpkgs.legacyPackages.${system};
@@ -13,20 +12,13 @@ let
   inherit (import ./data.nix) appPurescript appPython langPurescript langPython;
   inherit (builtins) map attrValues;
 
-  writeConfigs =
-    (import ./write-configs.nix
-      {
-        inherit (inputs) json2md env2json terrafix drv-tools workflows codium;
-        inherit system pkgs commands;
-      }
-    );
+  writeConfigs = import ./write-configs.nix { inherit system pkgs commands inputs; };
 
   commands = import ./commands.nix {
-    inherit pkgs system;
-    inherit (inputs) drv-tools;
+    inherit pkgs system inputs;
     scripts = {
-      ${langPurescript} = inputs.app-purescript.scripts.${system};
-      ${langPython} = inputs.app-python.scripts.${system};
+      ${langPurescript} = inputs.${appPurescript}.scripts.${system};
+      ${langPython} = inputs.${appPython}.scripts.${system};
     };
   };
 

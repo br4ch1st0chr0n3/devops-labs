@@ -40,7 +40,7 @@
                     source ${./app.env}
                     npx parcel serve -p $PORT --host $HOST dev/index.html
                   '';
-                  description = "run app";
+                  description = "Run app";
                 };
                 test = {
                   # https://github.com/mozilla/geckodriver/releases/tag/v0.31.0
@@ -57,12 +57,12 @@
                     kill $parcel_pid || echo "test finished"
                   '';
                   runtimeInputs = tools ++ [ pkgs.poetry pkgs.geckodriver pkgs.firefox ];
-                  description = "test app";
+                  description = "Test app";
                 };
                 build = {
                   text = build;
                   runtimeInputs = tools;
-                  description = "lint app";
+                  description = "Build app";
                 };
               };
             devShells.default = mkShell {

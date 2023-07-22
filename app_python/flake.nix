@@ -58,8 +58,6 @@
               runtimeInputs = [ pkgs.poetry ];
             };
           };
-        in
-        {
           devShells.default = mkShell {
             packages = [ pkgs.poetry ];
             bash.extra = activateVenv;
@@ -67,6 +65,9 @@
               mkRunCommands "scripts" { inherit (packages) run-start test lint; }
               ++ mkCommands "tools" tools;
           };
+        in
+        {
+          inherit packages devShells;
         });
     in
     outputs;

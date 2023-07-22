@@ -1,7 +1,7 @@
-{ pkgs, scripts, system, drv-tools }:
+{ pkgs, scripts, system, inputs }:
 let
   inherit (import ./data.nix) dockerPorts langs commandNames serviceNames langPython langPurescript appName;
-  inherit (drv-tools.lib.${system}) mkShellApp mkBin mkShellApps;
+  inherit (inputs.drv-tools.lib.${system}) mkShellApp mkBin mkShellApps;
 
   # we assume that the commands will start in the corresponding directories
   mkCommands = lang:

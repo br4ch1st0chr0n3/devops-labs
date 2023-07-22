@@ -11,8 +11,8 @@
           inherit (flakes) codium drv-tools devshell flakes-tools workflows env2json json2md;
           python-tools = flakes.language-tools.python;
           purescript-tools = flakes.language-tools.purescript;
-          app-python = import ./app_python;
-          app-purescript = import ./app_purescript;
+          app_python = import ./app_python;
+          app_purescript = import ./app_purescript;
           inherit flakes;
         };
 
@@ -27,6 +27,7 @@
         in
         {
           inherit devShells packages;
+          formatter = inputs.formatter.${system};
         });
     in
     outputs;

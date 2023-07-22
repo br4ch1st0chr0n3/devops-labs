@@ -41,11 +41,12 @@ let
         { expr = github.main; filePath = "${dirGithub}/main.tf"; }
         { expr = github.variables; filePath = "${dirGithub}/variables.tf"; }
       ];
-
-    writeWorkflows = writeYAML "workflows" ".github/workflows/ci.yaml" (
-      import ./ci.nix { inherit appPurescript appPython pkgs system inputs; }
-    );
   };
+
+  writeWorkflows = writeYAML "workflows" ".github/workflows/ci.yaml"
+    (
+      import ./ci.nix { inherit appPurescript appPython pkgs system inputs; }
+    ) // { pname = "writeWorkflows"; };
 
 
   writeAll =
@@ -66,5 +67,5 @@ let
       '');
 in
 {
-  inherit writeAll;
+  inherit writeAll writeWorkflows;
 } // writers

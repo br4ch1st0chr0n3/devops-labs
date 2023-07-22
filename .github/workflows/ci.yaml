@@ -183,13 +183,13 @@ jobs:
       - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
-          key: nix-${{ matrix.os }}-app-ci-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          key: nix-${{ matrix.os }}-app-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
           linux-max-store-size: 0
           macos-gc-enabled: true
           macos-max-store-size: 0
           restore-keys: |
-            nix-${{ matrix.os }}-app-ci-
+            nix-${{ matrix.os }}-app-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
       - name: Build app
@@ -245,13 +245,13 @@ jobs:
       - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
-          key: nix-${{ matrix.os }}-app-ci-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          key: nix-${{ matrix.os }}-app-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
           linux-max-store-size: 0
           macos-gc-enabled: true
           macos-max-store-size: 0
           restore-keys: |
-            nix-${{ matrix.os }}-app-ci-
+            nix-${{ matrix.os }}-app-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
       - name: Lint app

@@ -68,5 +68,5 @@ let
 in
 {
   inherit variables main;
-  tfvars = builtins.removeAttrs tfvars ["repo_description" "repo_name" ];
+  tfvars = builtins.removeAttrs tfvars [ "repo_description" "repo_name" ];
 }

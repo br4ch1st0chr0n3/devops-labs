@@ -25,7 +25,8 @@ let
   jobInit.value = job {
     strategy = { };
     runsOn = os.ubuntu-22;
-    name = "Initial Nix CI";
+    name = "Initial Nix";
+    cacheNixArgs.keyJob = "init";
     strategy = { };
     doSaveFlakes = false;
     doUpdateLocks = true;
@@ -46,10 +47,11 @@ let
   jobCache.name = "_2_cache";
   jobCache.value = job
     {
-      name = "Additional Nix CI";
+      name = "Caching Nix";
       doInstall = true;
       doPushToCachix = true;
       doSaveFlakes = false;
+      cacheNixArgs.keyJob = "caching";
       cacheNixArgs = {
         linuxGCEnabled = true;
         # linuxMaxStoreSize = 4000000000;
@@ -123,6 +125,7 @@ let
           name = "CI for ${app}";
           strategy.matrix.os = [ os.ubuntu-22 os.macos-12 ];
           doCacheNix = true;
+          cacheNixArgs.keyJob = "app";
           cacheNixArgs = {
             linuxGCEnabled = true;
             # linuxMaxStoreSize = 0;

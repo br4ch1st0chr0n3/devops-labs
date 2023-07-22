@@ -1,6 +1,6 @@
 jobs:
   _1_init:
-    name: Initial Nix CI
+    name: Initial Nix
     permissions:
       actions: write
       contents: write
@@ -19,11 +19,11 @@ jobs:
       - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
-          key: nix-ubuntu-22.04-job-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          key: nix-ubuntu-22.04-init-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
           linux-max-store-size: 4000000000
           restore-keys: |
-            nix-ubuntu-22.04-job-
+            nix-ubuntu-22.04-init-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
       - name: Configure git for github-actions
@@ -64,7 +64,7 @@ jobs:
           debug: true
           max-age: 172800
   _2_cache:
-    name: Additional Nix CI
+    name: Caching Nix
     needs:
       - _1_init
     permissions:
@@ -85,13 +85,13 @@ jobs:
       - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
-          key: nix-${{ matrix.os }}-job-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          key: nix-${{ matrix.os }}-caching-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
           linux-max-store-size: 0
           macos-gc-enabled: true
           macos-max-store-size: 0
           restore-keys: |
-            nix-${{ matrix.os }}-job-
+            nix-${{ matrix.os }}-caching-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
       - env:
@@ -183,13 +183,13 @@ jobs:
       - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
-          key: nix-${{ matrix.os }}-job-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          key: nix-${{ matrix.os }}-app-ci-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
           linux-max-store-size: 0
           macos-gc-enabled: true
           macos-max-store-size: 0
           restore-keys: |
-            nix-${{ matrix.os }}-job-
+            nix-${{ matrix.os }}-app-ci-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
       - name: Build app
@@ -245,13 +245,13 @@ jobs:
       - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
-          key: nix-${{ matrix.os }}-job-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          key: nix-${{ matrix.os }}-app-ci-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
           linux-max-store-size: 0
           macos-gc-enabled: true
           macos-max-store-size: 0
           restore-keys: |
-            nix-${{ matrix.os }}-job-
+            nix-${{ matrix.os }}-app-ci-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
       - name: Lint app

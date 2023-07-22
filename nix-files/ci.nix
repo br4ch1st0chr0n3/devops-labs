@@ -3,7 +3,6 @@ let
   inherit (inputs.drv-tools.lib.${system}) mergeValues mkAccessors genAttrsId singletonIf;
   inherit (inputs.workflows.lib.${system}) expr steps job job_ names os run;
   inherit (pkgs.lib.attrsets) genAttrs mapAttrsRecursive recursiveUpdate;
-  inherit (pkgs.lib.lists) flatten imap0;
 
   name = "CI";
 
@@ -24,20 +23,42 @@ let
 
   jobInit.name = "_1_init";
   jobInit.value = job {
+    strategy = { };
     runsOn = os.ubuntu-22;
     name = "Initial Nix CI";
     strategy = { };
     doSaveFlakes = false;
     doUpdateLocks = true;
     doFormat = true;
-    doCommit = true;
     cacheNixArgs = {
       linuxGCEnabled = true;
-      # linuxMaxStoreSize = 0;
+      linuxMaxStoreSize = 0;
     };
+    steps = _: [
+      {
+        name = "Run writers";
+        run = run.nixScript { name = inputs.root.packages.${system}.writeAll.pname; };
+      }
+      (steps.commit { messages = [ (steps.updateLocks { }).name (steps.format { }).name "Run writers" ]; })
+    ];
   };
 
-  jobChangedFiles.name = "_2_changed-files";
+  jobCache.name = "_2_cache";
+  jobCache.value = job
+    {
+      name = "Additional Nix CI";
+      doInstall = true;
+      doPushToCachix = true;
+      doSaveFlakes = false;
+      cacheNixArgs = {
+        linuxGCEnabled = true;
+        linuxMaxStoreSize = 0;
+        macosGCEnabled = true;
+        macosMaxStoreSize = 0;
+      };
+    } // { needs = [ jobInit.name ]; };
+
+  jobChangedFiles.name = "_3_changed-files";
   jobChangedFiles.value =
     let stepId = "changed-files"; in
     genAttrs apps (app:
@@ -68,7 +89,7 @@ let
       }
     );
 
-  jobCI.name = "_3_app-ci";
+  jobCI.name = "_4_app-ci";
   jobCI.value =
     let
       matrix = {
@@ -142,7 +163,7 @@ let
         }))
       matrix;
 
-  jobDocker.name = "_4_push-to-docker-hub";
+  jobDocker.name = "_5_push-to-docker-hub";
   jobDocker.value =
     genAttrs apps
       (app:
@@ -210,6 +231,7 @@ let
       inherit jobChangedFiles jobCI jobDocker;
     } // {
     ${jobInit.name} = jobInit.value;
+    ${jobCache.name} = jobCache.value;
   };
 in
 {

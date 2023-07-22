@@ -1,4 +1,4 @@
-{ pkgs, system }:
+{ pkgs, system, inputs }:
 with (inputs.terrafix.hcl.${system} { inherit pkgs; });
 let
   inherit (builtins) toString;

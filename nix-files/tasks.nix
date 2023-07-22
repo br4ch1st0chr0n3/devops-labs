@@ -1,4 +1,4 @@
-{ commands, system }:
+{ commands, system, inputs }:
 let
   inherit (import ./data.nix) commandNames langs taskNames actionNames appName;
   inherit (inputs.drv-tools.lib.${system}) mkBin;

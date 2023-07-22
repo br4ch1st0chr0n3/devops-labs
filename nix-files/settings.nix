@@ -1,6 +1,7 @@
-{ settingsNix, pkgs, mkBinName }:
+{ settingsNix, pkgs, system, inputs }:
 let
   inherit (import ./data.nix) appPurescript;
+  inherit (inputs.drv-tools.lib.${system}) mkBinName;
 in
 {
   inherit (settingsNix)

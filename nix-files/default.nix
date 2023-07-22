@@ -1,7 +1,4 @@
-{ inputs
-, system
-, root
-}:
+{ inputs, system }:
 let
   pkgs = inputs.nixpkgs.legacyPackages.${system};
   inherit (inputs.codium.lib.${system}) mkCodium extensions extensionsCommon settingsCommonNix settingsCommon;
@@ -17,8 +14,8 @@ let
   commands = import ./commands.nix {
     inherit pkgs system inputs;
     scripts = {
-      ${langPurescript} = inputs.${appPurescript}.scripts.${system};
-      ${langPython} = inputs.${appPython}.scripts.${system};
+      ${langPurescript} = inputs.${appPurescript}.packages.${system};
+      ${langPython} = inputs.${appPython}.packages.${system};
     };
   };
 
@@ -99,7 +96,7 @@ let
         inherit (extensions) purescript docker python toml fish kubernetes terraform;
       };
     };
-    inherit (mkFlakesTools { dirs = [ appPurescript appPython "." ]; inherit root; }) updateLocks saveFlakes;
+    inherit (mkFlakesTools { dirs = [ appPurescript appPython "." ]; inherit (inputs) root; }) updateLocks saveFlakes format;
   }
   // writeConfigs
   // commands.apps

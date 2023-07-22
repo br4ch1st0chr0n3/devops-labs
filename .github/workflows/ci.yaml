@@ -38,6 +38,10 @@ jobs:
         run: |-
           nix profile install .#format
           nix run .#format
+      - name: Run writers
+        run: |-
+          nix profile install .#writeAll
+          nix run .#writeAll
       - name: Commit & Push
         run: |-
           git pull --rebase --autostash
@@ -46,8 +50,9 @@ jobs:
 
           git commit \
             -m "action" \
-            -m "Format Nix files" \
             -m "Update flake locks" \
+            -m "Format Nix files" \
+            -m "Run writers" \
             || echo "commit failed!"
 
           git push
@@ -58,56 +63,10 @@ jobs:
           created: true
           debug: true
           max-age: 172800
-  _2_changed-files-app_purescript:
-    name: Check if app_purescript has any modified files
+  _2_cache:
+    name: Additional Nix CI
     needs:
       - _1_init
-    outputs:
-      app_purescript: ${{ steps.changed-files.outputs.any_modified }}
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - id: changed-files
-        name: Get changed files
-        uses: tj-actions/changed-files@v37
-        with:
-          files: app_purescript/**
-          sha: ${{ github.sha }}
-      - if: steps.changed-files.outputs.any_modified == 'true'
-        name: List changed files
-        run: echo "${{ steps.changed-files.outputs.all_changed_files }}"
-  _2_changed-files-app_python:
-    name: Check if app_python has any modified files
-    needs:
-      - _1_init
-    outputs:
-      app_python: ${{ steps.changed-files.outputs.any_modified }}
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - id: changed-files
-        name: Get changed files
-        uses: tj-actions/changed-files@v37
-        with:
-          files: app_python/**
-          sha: ${{ github.sha }}
-      - if: steps.changed-files.outputs.any_modified == 'true'
-        name: List changed files
-        run: echo "${{ steps.changed-files.outputs.all_changed_files }}"
-  _3_app-ci-app_purescript:
-    defaults:
-      run:
-        working-directory: app_purescript
-    if: needs._2_changed-files-app_purescript.outputs.app_purescript == 'true'
-    name: CI for app_purescript
-    needs:
-      - _2_changed-files-app_purescript
     permissions:
       actions: write
       contents: write
@@ -135,11 +94,104 @@ jobs:
             nix-${{ matrix.os }}-job-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
-      - if: matrix.os == 'ubuntu-22.04'
-        name: Configure git for github-actions
-        run: |
-          git config --global user.name github-actions
-          git config --global user.email github-actions@github.com
+      - env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          CACHIX_CACHE: ${{ secrets.CACHIX_CACHE }}
+        name: Push flakes to Cachix
+        run: |-
+          nix profile install .#pushToCachix
+          nix run .#pushToCachix
+      - name: Purge cache
+        uses: deemp/purge-cache@v1
+        with:
+          accessed: false
+          created: true
+          debug: true
+          max-age: 172800
+    strategy:
+      matrix:
+        os:
+          - macos-11
+          - macos-12
+          - ubuntu-20.04
+          - ubuntu-22.04
+  _3_changed-files-app_purescript:
+    name: Check if app_purescript has any modified files
+    needs:
+      - _1_init
+    outputs:
+      app_purescript: ${{ steps.changed-files.outputs.any_modified }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - id: changed-files
+        name: Get changed files
+        uses: tj-actions/changed-files@v37
+        with:
+          files: app_purescript/**
+          sha: ${{ github.sha }}
+      - if: steps.changed-files.outputs.any_modified == 'true'
+        name: List changed files
+        run: echo "${{ steps.changed-files.outputs.all_changed_files }}"
+  _3_changed-files-app_python:
+    name: Check if app_python has any modified files
+    needs:
+      - _1_init
+    outputs:
+      app_python: ${{ steps.changed-files.outputs.any_modified }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - id: changed-files
+        name: Get changed files
+        uses: tj-actions/changed-files@v37
+        with:
+          files: app_python/**
+          sha: ${{ github.sha }}
+      - if: steps.changed-files.outputs.any_modified == 'true'
+        name: List changed files
+        run: echo "${{ steps.changed-files.outputs.all_changed_files }}"
+  _4_app-ci-app_purescript:
+    defaults:
+      run:
+        working-directory: app_purescript
+    if: needs._3_changed-files-app_purescript.outputs.app_purescript == 'true'
+    name: CI for app_purescript
+    needs:
+      - _3_changed-files-app_purescript
+    permissions:
+      actions: write
+      contents: write
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v25
+        with:
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org https://cache.iog.io https://deemp.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= deemp.cachix.org-1:9shDxyR2ANqEPQEEYDL/xIOnoPwxHot21L5fiZnFL18=
+            keep-outputs = true
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v1
+        with:
+          key: nix-${{ matrix.os }}-job-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
+          linux-gc-enabled: true
+          linux-max-store-size: 0
+          macos-gc-enabled: true
+          macos-max-store-size: 0
+          restore-keys: |
+            nix-${{ matrix.os }}-job-
+      - name: Remove old cache profiles
+        run: rm -rf /nix/var/nix/profiles/cache
       - name: Build app
         run: |-
           nix profile install .#build
@@ -167,14 +219,14 @@ jobs:
         os:
           - ubuntu-22.04
           - macos-12
-  _3_app-ci-app_python:
+  _4_app-ci-app_python:
     defaults:
       run:
         working-directory: app_python
-    if: needs._2_changed-files-app_python.outputs.app_python == 'true'
+    if: needs._3_changed-files-app_python.outputs.app_python == 'true'
     name: CI for app_python
     needs:
-      - _2_changed-files-app_python
+      - _3_changed-files-app_python
     permissions:
       actions: write
       contents: write
@@ -202,11 +254,6 @@ jobs:
             nix-${{ matrix.os }}-job-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
-      - if: matrix.os == 'ubuntu-22.04'
-        name: Configure git for github-actions
-        run: |
-          git config --global user.name github-actions
-          git config --global user.email github-actions@github.com
       - name: Lint app
         run: |-
           nix profile install .#lint
@@ -234,10 +281,10 @@ jobs:
         os:
           - ubuntu-22.04
           - macos-12
-  _4_push-to-docker-hub-app_purescript:
+  _5_push-to-docker-hub-app_purescript:
     name: Push 'app_purescript' to Docker Hub
     needs:
-      - _3_app-ci-app_purescript
+      - _4_app-ci-app_purescript
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout this repo
@@ -265,10 +312,10 @@ jobs:
           context: app_purescript
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/app_purescript:latest
-  _4_push-to-docker-hub-app_python:
+  _5_push-to-docker-hub-app_python:
     name: Push 'app_python' to Docker Hub
     needs:
-      - _3_app-ci-app_python
+      - _4_app-ci-app_python
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout this repo

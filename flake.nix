@@ -13,6 +13,7 @@
           purescript-tools = flakes.language-tools.purescript;
           app_python = import ./app_python;
           app_purescript = import ./app_purescript;
+          root = import ./.;
           inherit flakes;
         };
 
@@ -23,7 +24,7 @@
         let inputs = inputs_ // inputs__; in
         inputs.flake-utils.lib.eachDefaultSystem (system:
         let
-          inherit (import ./nix-files/default.nix { inherit inputs system; root = ./.; }) devShells packages;
+          inherit (import ./nix-files/default.nix { inherit inputs system; }) devShells packages;
         in
         {
           inherit devShells packages;

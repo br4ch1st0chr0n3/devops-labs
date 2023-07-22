@@ -25,7 +25,7 @@ let
   jobInit.value = job {
     strategy = { };
     runsOn = os.ubuntu-22;
-    name = "Initial Nix";
+    name = "Initial Nix job";
     cacheNixArgs.keyJob = "init";
     strategy = { };
     doSaveFlakes = false;
@@ -54,9 +54,9 @@ let
       cacheNixArgs.keyJob = "caching";
       cacheNixArgs = {
         linuxGCEnabled = true;
-        # linuxMaxStoreSize = 4000000000;
+        linuxMaxStoreSize = 7500000000;
         macosGCEnabled = true;
-        # macosMaxStoreSize = 4000000000;
+        macosMaxStoreSize = 7000000000;
       };
     } // { needs = [ jobInit.name ]; };
 

@@ -1,6 +1,6 @@
 jobs:
   _1_init:
-    name: Initial Nix
+    name: Initial Nix job
     permissions:
       actions: write
       contents: write
@@ -87,9 +87,9 @@ jobs:
         with:
           key: nix-${{ matrix.os }}-caching-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 0
+          linux-max-store-size: 7500000000
           macos-gc-enabled: true
-          macos-max-store-size: 0
+          macos-max-store-size: 7000000000
           restore-keys: |
             nix-${{ matrix.os }}-caching-
       - name: Remove old cache profiles

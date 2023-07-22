@@ -96,7 +96,7 @@ let
         inherit (extensions) purescript docker python toml fish kubernetes terraform;
       };
     };
-    inherit (mkFlakesTools { dirs = [ appPurescript appPython "." ]; inherit (inputs) root; }) updateLocks saveFlakes format;
+    inherit (mkFlakesTools { dirs = [ appPurescript appPython "." ]; inherit (inputs) root; }) updateLocks pushToCachix format;
   }
   // writeConfigs
   // commands.apps

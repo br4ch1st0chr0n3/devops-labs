@@ -32,7 +32,7 @@ let
     doFormat = true;
     cacheNixArgs = {
       linuxGCEnabled = true;
-      linuxMaxStoreSize = 0;
+      linuxMaxStoreSize = 4000000000;
     };
     steps = _: [
       {
@@ -52,9 +52,9 @@ let
       doSaveFlakes = false;
       cacheNixArgs = {
         linuxGCEnabled = true;
-        linuxMaxStoreSize = 0;
+        # linuxMaxStoreSize = 4000000000;
         macosGCEnabled = true;
-        macosMaxStoreSize = 0;
+        # macosMaxStoreSize = 4000000000;
       };
     } // { needs = [ jobInit.name ]; };
 

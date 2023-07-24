@@ -1,7 +1,7 @@
 { appPurescript, appPython, pkgs, system, inputs }:
 let
   inherit (inputs.drv-tools.lib.${system}) mergeValues mkAccessors genAttrsId singletonIf;
-  inherit (inputs.workflows.lib.${system}) expr steps job job_ names os run;
+  inherit (inputs.workflows.lib.${system}) expr steps job job_ names os run stepsIf;
   inherit (pkgs.lib.attrsets) genAttrs mapAttrsRecursive recursiveUpdate;
 
   name = "CI";
@@ -134,9 +134,9 @@ let
           cacheNixArgs.keyJob = "app";
           cacheNixArgs = {
             linuxGCEnabled = true;
-            # linuxMaxStoreSize = 0;
+            linuxMaxStoreSize = 2000000000;
             macosGCEnabled = true;
-            # macosMaxStoreSize = 0;
+            macosMaxStoreSize = 2000000000;
           };
           steps = _: [
             (
@@ -148,22 +148,36 @@ let
             )
             (
               # No need to build app_python as it's an interpretable lang
-              singletonIf (app == appPurescript) {
-                name = "Build app";
-                run = run.nixScript { name = inputs.${app}.packages.${system}.build.pname; };
-              }
+              singletonIf (app == appPurescript)
+                [
+                  {
+                    uses = "actions/cache@v3";
+                    "with" = {
+                      path = ''
+                        ~/.npm
+                        ./app_purescript/.spago
+                      '';
+                      key = "${ expr names.runner.os }-front-${ expr "hashFiles('**/*.dhall')" }";
+                      restore-keys = "${ expr names.runner.os }-front-";
+                    };
+                  }
+                  {
+                    name = "Build app";
+                    run = run.nixScript { name = inputs.${app}.packages.${system}.build.pname; };
+                  }
+                ]
             )
-            {
+            (stepsIf ("${expr names.matrix.os} == ${os.ubuntu-22}") [{
               name = "Run Snyk to check for vulnerabilities ${appMatrix.snyk.language-title}";
               uses = "snyk/actions/${ appMatrix.snyk.language }@master";
-              continue-on-error = true;
+              continue-on-error = false;
               "with" = {
                 args = "--all-projects";
               };
               env = {
                 SNYK_TOKEN = expr names.secrets.SNYK_TOKEN;
               };
-            }
+            }])
             {
               name = "Test app";
               run = run.nixScript { name = inputs.${app}.packages.${system}.test.pname; };

@@ -185,20 +185,28 @@ jobs:
         with:
           key: nix-${{ matrix.os }}-app-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 0
+          linux-max-store-size: 2000000000
           macos-gc-enabled: true
-          macos-max-store-size: 0
+          macos-max-store-size: 2000000000
           restore-keys: |
             nix-${{ matrix.os }}-app-
       - name: Remove old cache profiles
         run: rm -rf /nix/var/nix/profiles/cache
+      - uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-front-${{ hashFiles('**/*.dhall') }}
+          path: |
+            ~/.npm
+            ./app_purescript/.spago
+          restore-keys: ${{ runner.os }}-front-
       - name: Build app
         run: |-
           nix profile install .#build
           nix run .#build
-      - continue-on-error: true
+      - continue-on-error: false
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        if: ${{ matrix.os }} == ubuntu-22.04
         name: Run Snyk to check for vulnerabilities (Node.js)
         uses: snyk/actions/node@master
         with:
@@ -247,9 +255,9 @@ jobs:
         with:
           key: nix-${{ matrix.os }}-app-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 0
+          linux-max-store-size: 2000000000
           macos-gc-enabled: true
-          macos-max-store-size: 0
+          macos-max-store-size: 2000000000
           restore-keys: |
             nix-${{ matrix.os }}-app-
       - name: Remove old cache profiles
@@ -258,9 +266,10 @@ jobs:
         run: |-
           nix profile install .#lint
           nix run .#lint
-      - continue-on-error: true
+      - continue-on-error: false
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        if: ${{ matrix.os }} == ubuntu-22.04
         name: Run Snyk to check for vulnerabilities (Python)
         uses: snyk/actions/python@master
         with:

@@ -1,12 +1,15 @@
 {
+  inputs.firefox-darwin.url = "github:bandithedoge/nixpkgs-firefox-darwin";
+  
   description = "PureScript app flake";
-  outputs = _:
+  outputs = inputs:
     let flakes = (import ../.).outputs.inputs.flakes; in
     flakes.makeFlake {
       inputs = {
         inherit (flakes.all)
           flake-utils nixpkgs poetry2nix codium drv-tools
           devshell python-tools purescript-tools;
+        inherit (inputs) firefox-darwin;
       };
       perSystem = { inputs, system }:
         let
@@ -15,6 +18,7 @@
           inherit (inputs.purescript-tools.packages.${system}) purescript spago nodejs_18;
           inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands;
           inherit (inputs.python-tools.lib.${system}) activateVenv;
+          pkgs-firefox = pkgs.extend inputs.firefox-darwin.overlay;
 
           tools = [ purescript spago nodejs_18 ];
 
@@ -44,7 +48,7 @@
                   poetry run pytest -rX --rootdir test --driver Firefox
                   kill $parcel_pid || echo "test finished"
                 '';
-                runtimeInputs = tools ++ [ pkgs.poetry pkgs.geckodriver pkgs.firefox ];
+                runtimeInputs = tools ++ [ pkgs.poetry pkgs.geckodriver pkgs-firefox.firefox-bin ];
                 description = "Test app";
               };
               build = {

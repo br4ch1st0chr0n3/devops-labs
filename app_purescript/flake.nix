@@ -1,6 +1,6 @@
 {
   inputs.firefox-darwin.url = "github:bandithedoge/nixpkgs-firefox-darwin";
-  
+
   description = "PureScript app flake";
   outputs = inputs:
     let flakes = (import ../.).outputs.inputs.flakes; in

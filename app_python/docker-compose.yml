@@ -2,14 +2,13 @@ services:
   web:
     build:
       context: ./
-    env_file:
-      - .env
     environment:
       - PORT=${DOCKER_PORT}
       - HOST=${HOST}
+      - DATA_PATH=${DOCKER_DATA_PATH}
     ports:
       - ${HOST_PORT}:${DOCKER_PORT}
     volumes:
       - .:/app
-      - ./visits:/visits
+      - ${LOCAL_DATA_PATH}:${DOCKER_DATA_PATH}
     image: ${DOCKER_HUB_USERNAME}/app_python:latest

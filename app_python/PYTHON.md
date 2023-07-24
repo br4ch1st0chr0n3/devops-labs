@@ -37,6 +37,7 @@ What I did in this project
   - the default `devshell` sources Python virtual environment when entering this directory
 
 - Stored the app configuration in a `.env` file
+  - `.env` configures `docker-compose.yml`
   - It's checked into the repo since it contains non-sensitive data necessary to run this app
 
 ## Chosen framework

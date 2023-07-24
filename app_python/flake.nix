@@ -1,29 +1,16 @@
 {
   description = "Python app flake";
-  inputs = { };
-
-  outputs =
-    inputs@{ self, ... }:
-    let
-      inputs_ =
-        let flakes = (import ../.).outputs.inputs.flakes; in
-        {
-          inherit (flakes.source-flake) flake-utils nixpkgs;
-          inherit (flakes) codium drv-tools devshell;
-          python-tools = flakes.language-tools.python;
-        };
-
-      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
-
-      outputs_ =
-        inputs__:
-        let inputs = inputs_ // inputs__; in
-        inputs.flake-utils.lib.eachDefaultSystem (system:
+  outputs = _:
+    let flakes = (import ../.).outputs.inputs.flakes; in
+    flakes.makeFlake {
+      inputs = { inherit (flakes.all) flake-utils nixpkgs poetry2nix codium drv-tools devshell python-tools; };
+      perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           inherit (inputs.drv-tools.lib.${system}) mkShellApp mkShellApps mkDevShellsWithDefault mkBin applyN;
           inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands mkCommands;
           inherit (inputs.python-tools.lib.${system}) activateVenv;
+          inherit (pkgs.extend inputs.poetry2nix.overlay) poetry2nix;
 
           whenRootAtDepth = depth: ''when inside `$PROJECT_ROOT/${builtins.baseNameOf ./.}`'';
 
@@ -65,12 +52,25 @@
               mkRunCommands "scripts" { inherit (packages) run-start test lint; }
               ++ mkCommands "tools" tools;
           };
+          devShells.poetry = (poetry2nix.mkPoetryEnv {
+            projectDir = ./.;
+            preferWheels = true;
+            editablePackageSources = {
+              app = ./app;
+            };
+            overrides = poetry2nix.defaultPoetryOverrides.extend (self: super: {
+              bs4 = super.bs4.overridePythonAttrs (old: {
+                buildInputs = (old.buildInputs or [ ]) ++ [ super.setuptools ];
+              });
+            });
+          }).overrideAttrs (oldAttrs: {
+            buildInputs = [ pkgs.poetry ];
+          });
         in
         {
           inherit packages devShells;
-        });
-    in
-    outputs;
+        };
+    };
   nixConfig = {
     extra-substituters = [
       https://nix-community.cachix.org

@@ -19,10 +19,17 @@ tz = dt.timezone(offset, name="MSK")
 
 app = get_application()
 
-visits_data = "/visits/data"
+import os
+data_path = os.getenv('DATA_PATH')
+
+visits_data = f"{data_path}/visits/count"
+
+from pathlib import Path
+#creating a new directory called pythondirectory
+Path(visits_data).parent.mkdir(parents=True, exist_ok=True)
+
 with open(visits_data, "w", encoding="utf8") as visits:
     visits.write("0")
-
 
 def get_datetime() -> str:
     """get current time as a formatted string

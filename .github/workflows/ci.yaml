@@ -209,14 +209,12 @@ jobs:
         run: |-
           nix profile install .#build
           nix run .#build
-      - continue-on-error: false
-        env:
+      - env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        if: ${{ matrix.os }} == ubuntu-22.04
         name: Run Snyk to check for vulnerabilities (Node.js)
-        uses: snyk/actions/node@master
-        with:
-          args: --all-projects
+        run: |-
+          nix profile install .#snykTest
+          nix run .#snykTest
       - name: Test app
         run: |-
           nix profile install .#test
@@ -272,14 +270,12 @@ jobs:
         run: |-
           nix profile install .#lint
           nix run .#lint
-      - continue-on-error: false
-        env:
+      - env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        if: ${{ matrix.os }} == ubuntu-22.04
         name: Run Snyk to check for vulnerabilities (Python)
-        uses: snyk/actions/python@master
-        with:
-          args: --all-projects
+        run: |-
+          nix profile install .#snykTest
+          nix run .#snykTest
       - name: Test app
         run: |-
           nix profile install .#test

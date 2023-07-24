@@ -14,7 +14,7 @@
       perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
-          inherit (inputs.drv-tools.lib.${system}) mkShellApps;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps getExe;
           inherit (inputs.purescript-tools.packages.${system}) purescript spago nodejs_18;
           inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands;
           inherit (inputs.python-tools.lib.${system}) activateVenv;
@@ -24,39 +24,44 @@
 
           packages =
             let build = ''npm run build''; in
-            mkShellApps {
-              run-start = {
-                runtimeInputs = tools;
-                text = ''
-                  ${build}
-                  source ${./app.env}
-                  npx parcel serve -p $PORT --host $HOST dev/index.html
-                '';
-                description = "Run app";
+            mkShellApps
+              {
+                run-start = {
+                  runtimeInputs = tools;
+                  text = ''
+                    ${build}
+                    source ${./app.env}
+                    npx parcel serve -p $PORT --host $HOST dev/index.html
+                  '';
+                  description = "Run app";
+                };
+                test = {
+                  # https://github.com/mozilla/geckodriver/releases/tag/v0.31.0
+                  text = ''
+                    ${activateVenv}
+                    poetry install
+                    set +e
+                    nix run .#run-start &
+                    parcel_pid=$!
+                    poetry run python ${./scripts/wait-for-server.py}
+                    mkdir -p test_tmp
+                    export TMPDIR=test_tmp
+                    poetry run pytest -rX --rootdir test --driver Firefox
+                    kill $parcel_pid || echo "test finished"
+                  '';
+                  runtimeInputs = tools ++ [ pkgs.poetry pkgs.geckodriver pkgs-firefox.firefox-bin ];
+                  description = "Test app";
+                };
+                build = {
+                  text = build;
+                  runtimeInputs = tools;
+                  description = "Build app";
+                };
+                snykTest = {
+                  text = "${getExe pkgs.nodePackages.snyk} test";
+                  runtimeInputs = [ pkgs.python3Full ];
+                };
               };
-              test = {
-                # https://github.com/mozilla/geckodriver/releases/tag/v0.31.0
-                text = ''
-                  ${activateVenv}
-                  poetry install
-                  set +e
-                  nix run .#run-start &
-                  parcel_pid=$!
-                  poetry run python ${./scripts/wait-for-server.py}
-                  mkdir -p test_tmp
-                  export TMPDIR=test_tmp
-                  poetry run pytest -rX --rootdir test --driver Firefox
-                  kill $parcel_pid || echo "test finished"
-                '';
-                runtimeInputs = tools ++ [ pkgs.poetry pkgs.geckodriver pkgs-firefox.firefox-bin ];
-                description = "Test app";
-              };
-              build = {
-                text = build;
-                runtimeInputs = tools;
-                description = "Build app";
-              };
-            };
           devShells.default = mkShell {
             packages = [ pkgs.poetry ] ++ tools;
             bash.extra = activateVenv;

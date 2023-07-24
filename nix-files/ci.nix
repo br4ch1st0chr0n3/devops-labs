@@ -152,36 +152,31 @@ let
             )
             (
               # No need to build app_python as it's an interpretable lang
-              singletonIf (app == appPurescript)
-                [
-                  {
-                    uses = "actions/cache@v3";
-                    "with" = {
-                      path = ''
-                        ~/.npm
-                        ./app_purescript/.spago
-                      '';
-                      key = "${ expr names.runner.os }-front-${ expr "hashFiles('**/*.dhall')" }";
-                      restore-keys = "${ expr names.runner.os }-front-";
-                    };
-                  }
-                  {
-                    name = "Build app";
-                    run = run.nixScript { name = inputs.${app}.packages.${system}.build.pname; };
-                  }
-                ]
+              singletonIf (app == appPurescript) [
+                {
+                  uses = "actions/cache@v3";
+                  "with" = {
+                    path = ''
+                      ~/.npm
+                      ./app_purescript/.spago
+                    '';
+                    key = "${ expr names.runner.os }-front-${ expr "hashFiles('**/*.dhall')" }";
+                    restore-keys = "${ expr names.runner.os }-front-";
+                  };
+                }
+                {
+                  name = "Build app";
+                  run = run.nixScript { name = inputs.${app}.packages.${system}.build.pname; };
+                }
+              ]
             )
-            (stepsIf ("${expr names.matrix.os} == ${os.ubuntu-22}") [{
+            {
               name = "Run Snyk to check for vulnerabilities ${appMatrix.snyk.language-title}";
-              uses = "snyk/actions/${ appMatrix.snyk.language }@master";
-              continue-on-error = false;
-              "with" = {
-                args = "--all-projects";
-              };
+              run = run.nixScript { name = inputs.${app}.packages.${system}.snykTest.pname; };
               env = {
                 SNYK_TOKEN = expr names.secrets.SNYK_TOKEN;
               };
-            }])
+            }
             {
               name = "Test app";
               run = run.nixScript { name = inputs.${app}.packages.${system}.test.pname; };

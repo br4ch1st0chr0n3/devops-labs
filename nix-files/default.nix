@@ -23,12 +23,12 @@ let
 
   tools = attrValues {
     inherit (pkgs)
-      docker poetry direnv lorri
-      rnix-lsp nixpkgs-fmt dhall-lsp-server
-      geckodriver terraform terraform-ls
+      docker poetry
+      terraform terraform-ls
       kubernetes minikube kubernetes-helm
-      sops age hadolint
+      sops age hadolint python3Full
       ;
+    inherit (pkgs.nodePackages) snyk;
   };
 
   scripts =
@@ -104,7 +104,7 @@ let
 
   devShells.default = mkShell {
     bash.extra = "";
-    packages = [ ];
+    packages = tools;
     commands =
       (mkCommands "packages" tools) ++
       (mkRunCommands "configs" writeConfigs) ++

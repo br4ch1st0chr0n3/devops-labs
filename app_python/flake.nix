@@ -7,7 +7,7 @@
       perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
-          inherit (inputs.drv-tools.lib.${system}) mkShellApp mkShellApps mkDevShellsWithDefault mkBin applyN;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps getExe;
           inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands mkCommands;
           inherit (inputs.python-tools.lib.${system}) activateVenv;
           inherit (pkgs.extend inputs.poetry2nix.overlay) poetry2nix;
@@ -43,6 +43,10 @@
               text = withoutErrors ''poetry run pylint app'';
               description = "lint app";
               runtimeInputs = [ pkgs.poetry ];
+            };
+            snykTest = {
+              text = "${getExe pkgs.nodePackages.snyk} test";
+              runtimeInputs = [ pkgs.python3Full ];
             };
           };
           devShells.default = mkShell {

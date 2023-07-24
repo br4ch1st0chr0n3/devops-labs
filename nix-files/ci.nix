@@ -35,12 +35,18 @@ let
       linuxGCEnabled = true;
       linuxMaxStoreSize = 4000000000;
     };
-    steps = _: [
+    steps = { dir, stepsAttrs }: [
       {
         name = "Run writers";
         run = run.nixScript { name = inputs.root.packages.${system}.writeAll.pname; };
       }
-      (steps.commit { messages = [ (steps.updateLocks { }).name (steps.format { }).name "Run writers" ]; })
+      (steps.commit {
+        messages = [
+          (steps.updateLocks { }).name
+          (steps.format { }).name
+          stepsAttrs."Run writers".name
+        ];
+      })
     ];
   };
 

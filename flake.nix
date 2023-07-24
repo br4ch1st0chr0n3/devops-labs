@@ -1,37 +1,25 @@
 {
   inputs.flakes.url = "github:deemp/flakes";
-
-  outputs =
-    inputs@{ self, ... }:
-    let
-      inputs_ =
-        let flakes = inputs.flakes.flakes; in
-        {
-          inherit (flakes.source-flake) flake-utils nixpkgs formatter terrafix;
-          inherit (flakes) codium drv-tools devshell flakes-tools workflows env2json json2md;
-          python-tools = flakes.language-tools.python;
-          purescript-tools = flakes.language-tools.purescript;
-          app_python = import ./app_python;
-          app_purescript = import ./app_purescript;
-          root = import ./.;
-          inherit flakes;
-        };
-
-      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
-
-      outputs_ =
-        inputs__:
-        let inputs = inputs_ // inputs__; in
-        inputs.flake-utils.lib.eachDefaultSystem (system:
-        let
-          inherit (import ./nix-files/default.nix { inherit inputs system; }) devShells packages;
-        in
+  outputs = inputs:
+    let flakes = inputs.flakes; in
+    flakes.makeFlake {
+      inputs = {
+        inherit (inputs.flakes.all)
+          nixpkgs formatter terrafix codium drv-tools devshell
+          flakes-tools workflows haskell-tools env2json json2md
+          python-tools;
+        app_python = import ./app_python;
+        app_purescript = import ./app_purescript;
+        root = import ./.;
+        inherit flakes;
+      };
+      perSystem = { inputs, system }:
+        let inherit (import ./nix-files/default.nix { inherit inputs system; }) devShells packages; in
         {
           inherit devShells packages;
           formatter = inputs.formatter.${system};
-        });
-    in
-    outputs;
+        };
+    };
 
   nixConfig = {
     extra-substituters = [

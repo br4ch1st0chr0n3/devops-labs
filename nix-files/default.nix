@@ -109,7 +109,7 @@ let
       (mkCommands "packages" tools) ++
       (mkRunCommands "configs" writeConfigs) ++
       (mkRunCommands "apps-commands" commands.apps) ++
-      (mkRunCommands "scripts" scripts);
+      (mkRunCommands "scripts" (scripts // { inherit (writeConfigs) writeAll; }));
   }
   ;
 in

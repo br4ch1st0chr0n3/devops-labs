@@ -56,7 +56,7 @@ let
         mkShellApp {
           name = "writeAll";
           text = concatMapStringsNewline getExe writers_;
-          description = "Write lib using the available config writers";
+          description = "Run all available config writers";
         }
       )
       (x: ''

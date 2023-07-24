@@ -21,7 +21,7 @@ jobs:
         with:
           key: nix-ubuntu-22.04-init-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 4000000000
+          linux-max-store-size: 4500000000
           restore-keys: |
             nix-ubuntu-22.04-init-
       - name: Remove old cache profiles

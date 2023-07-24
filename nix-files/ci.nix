@@ -33,7 +33,7 @@ let
     doFormat = true;
     cacheNixArgs = {
       linuxGCEnabled = true;
-      linuxMaxStoreSize = 4000000000;
+      linuxMaxStoreSize = 4500000000;
     };
     steps = { dir, stepsAttrs }: [
       {

@@ -131,7 +131,10 @@ jobs:
         name: Get changed files
         uses: tj-actions/changed-files@v37
         with:
-          files: app_purescript/**
+          files: |
+            app_purescript/**
+            flake*
+            .github/**
           sha: ${{ github.sha }}
       - if: steps.changed-files.outputs.any_modified == 'true'
         name: List changed files
@@ -152,7 +155,10 @@ jobs:
         name: Get changed files
         uses: tj-actions/changed-files@v37
         with:
-          files: app_python/**
+          files: |
+            app_python/**
+            flake*
+            .github/**
           sha: ${{ github.sha }}
       - if: steps.changed-files.outputs.any_modified == 'true'
         name: List changed files

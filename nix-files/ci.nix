@@ -85,7 +85,11 @@ let
             uses = "tj-actions/changed-files@v37";
             "with" = {
               sha = expr names.github.sha;
-              files = "${app}/**";
+              files = ''
+                ${app}/**
+                flake*
+                .github/**
+              '';
             };
           }
           {

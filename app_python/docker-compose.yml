@@ -11,4 +11,6 @@ services:
     volumes:
       - .:/app
       - ${LOCAL_DATA_PATH}:${DOCKER_DATA_PATH}
-    image: ${DOCKER_HUB_USERNAME}/app_python:latest
+    # image: ${DOCKER_HUB_USERNAME}/app_python:latest
+    image: app_python:latest
+

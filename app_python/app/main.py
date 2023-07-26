@@ -7,8 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 import uvicorn
-from dotenv import dotenv_values
-    
+import os
 
 def get_application() -> FastAPI:
     return FastAPI(title=__name__)
@@ -19,7 +18,9 @@ tz = dt.timezone(offset, name="MSK")
 
 app = get_application()
 
-import os
+
+# prepare visits file
+
 data_path = os.getenv('DATA_PATH')
 
 visits_data = f"{data_path}/visits/count"
@@ -30,6 +31,9 @@ Path(visits_data).parent.mkdir(parents=True, exist_ok=True)
 
 with open(visits_data, "w", encoding="utf8") as visits:
     visits.write("0")
+
+
+
 
 def get_datetime() -> str:
     """get current time as a formatted string
@@ -81,11 +85,8 @@ async def visits_page(request: Request):
     )
 
 
-CONFIG = dotenv_values(dotenv_path="app.env")
-
-
 def main():
-    uvicorn.run(app, host=CONFIG["HOST"], port=int(CONFIG["PORT"]))
+    uvicorn.run(app, host=os.environ["HOST"], port=int(os.environ["PORT"]))
 
 
 if __name__ == "__main__":

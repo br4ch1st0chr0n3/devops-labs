@@ -3,73 +3,77 @@
   outputs = _:
     let flakes = (import ../.).outputs.inputs.flakes; in
     flakes.makeFlake {
-      inputs = { inherit (flakes.all) flake-utils nixpkgs poetry2nix codium drv-tools devshell python-tools; };
+      inputs = { inherit (flakes.all) flake-utils nixpkgs poetry2nix codium drv-tools devshell; };
       perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           inherit (inputs.drv-tools.lib.${system}) mkShellApps getExe;
           inherit (inputs.devshell.lib.${system}) mkShell mkRunCommands mkCommands;
-          inherit (inputs.python-tools.lib.${system}) activateVenv;
           inherit (pkgs.extend inputs.poetry2nix.overlay) poetry2nix;
+          inherit (import ../nix-files/data.nix) appPython;
 
-          whenRootAtDepth = depth: ''when inside `$PROJECT_ROOT/${builtins.baseNameOf ./.}`'';
-
-          # TODO enable disabled errors after command
-          # https://unix.stackexchange.com/a/310963 
-          withoutErrors = command: ''
-            set +e
-            ${activateVenv}
-            poetry install
-            ${command}
-            echo ""
-          '';
-
-          tools = [ pkgs.poetry ];
-
-          packages = mkShellApps {
-            run-start =
-              let appName = (pkgs.lib.modules.importTOML ./pyproject.toml).config.tool.poetry.name; in
-              {
-                text = withoutErrors '' poetry run ${appName}'';
-                description = "start app";
-                runtimeInputs = [ pkgs.poetry ];
-              };
-            test = {
-              text = withoutErrors ''poetry run pytest -rX'';
-              description = "test app";
-              runtimeInputs = [ pkgs.poetry ];
-            };
-            lint = {
-              text = withoutErrors ''poetry run pylint app'';
-              description = "lint app";
-              runtimeInputs = [ pkgs.poetry ];
-            };
-            snykTest = {
-              text = "${getExe pkgs.nodePackages.snyk} test";
-              runtimeInputs = [ pkgs.python3Full ];
-            };
-          };
-          devShells.default = mkShell {
-            packages = [ pkgs.poetry ];
-            bash.extra = activateVenv;
-            commands =
-              mkRunCommands "scripts" { inherit (packages) run-start test lint; }
-              ++ mkCommands "tools" tools;
-          };
-          devShells.poetry = (poetry2nix.mkPoetryEnv {
+          app = (poetry2nix.mkPoetryApplication {
             projectDir = ./.;
             preferWheels = true;
-            editablePackageSources = {
-              app = ./app;
-            };
+            python = pkgs.python3Full;
             overrides = poetry2nix.defaultPoetryOverrides.extend (self: super: {
               bs4 = super.bs4.overridePythonAttrs (old: {
                 buildInputs = (old.buildInputs or [ ]) ++ [ super.setuptools ];
               });
             });
-          }).overrideAttrs (oldAttrs: {
-            buildInputs = [ pkgs.poetry ];
           });
+
+          appScript = "app";
+
+          appImage = pkgs.dockerTools.streamLayeredImage {
+            name = appPython;
+            tag = "latest";
+            contents = [ app.dependencyEnv pkgs.bashInteractive pkgs.coreutils ];
+            config.Entrypoint = [ "bash" "-c" ];
+            config.Cmd = [ "cd app && uvicorn --reload --host $HOST --port $PORT app.main:app" ];
+          };
+
+          packages = mkShellApps
+            {
+              run-start = {
+                text = ''poetry run ${appScript}'';
+                description = "start app";
+                runtimeInputs = [ pkgs.poetry app.dependencyEnv ];
+              };
+              test = {
+                text = ''poetry run pytest -rX'';
+                description = "test app";
+                runtimeInputs = [ pkgs.poetry app.dependencyEnv ];
+              };
+              lint = {
+                text = ''poetry run pylint app'';
+                description = "lint app";
+                runtimeInputs = [ pkgs.poetry app.dependencyEnv ];
+              };
+              snykTest = {
+                text = "snyk test";
+                runtimeInputs = [ pkgs.nodePackages.snyk pkgs.python3Full ];
+              };
+              dockerLoad = {
+                text = ''$(nix build --no-link --print-out-paths ${appImage}) | docker load'';
+                runtimeInputs = [ pkgs.nix pkgs.docker ];
+              };
+              dockerPush = {
+                text = ''docker compose'';
+              };
+            }
+          // {
+            inherit app appImage;
+          };
+
+          devShells.default = mkShell {
+            packages = [ pkgs.poetry ];
+            packagesFrom = [ app.dependencyEnv ];
+            commands =
+              mkRunCommands "scripts" { inherit (packages) run-start test lint; }
+              ++ mkCommands "tools" [ ];
+          };
+          devShells.poetry = app.dependencyEnv;
         in
         {
           inherit packages devShells;

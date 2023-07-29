@@ -3,7 +3,7 @@
   outputs = _:
     let flakes = (import ../.).outputs.inputs.flakes; in
     flakes.makeFlake {
-      inputs = { inherit (flakes.all) flake-utils nixpkgs poetry2nix codium drv-tools devshell; };
+      inputs = { inherit (flakes.all) nixpkgs poetry2nix codium drv-tools devshell; };
       perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};

@@ -11,7 +11,9 @@
 .parcel-cache
 dist
 min
-prod
 test
 !test/test_main.py
 test_tmp
+result*
+!prod
+prod/index.js

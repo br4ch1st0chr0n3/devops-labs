@@ -1,15 +1,32 @@
 services:
-  web:
+  release:
     build:
       context: ./
     env_file:
       - .env
-    environment:
-      - PORT=${DOCKER_PORT}
-      - HOST=${HOST}
     ports:
-      - ${HOST_PORT}:${DOCKER_PORT}
-    # mount reflect local changes inside the container
+      - ${PORT}:${PORT_DOCKER}
+    image: app_purescript_release:latest
+    command:
+      - |
+        cd app
+        parcel serve -p ${PORT_DOCKER} --host ${HOST_DOCKER} dev/index.html
+
+  dev:
+    build:
+      context: ./
+    env_file:
+      - .env
+    ports:
+      - ${PORT}:${PORT_DOCKER}
+    # mount to reflect local changes inside the container
     volumes:
-      - .:/app
-    image: ${DOCKER_HUB_USERNAME}/app_purescript:latest
+      - ./dev:/app/dev
+      - ./output:/app/output/
+    image: app_purescript_release:latest
+    command:
+      - |
+        cd app
+        esbuild dev/main.js --outfile=dev/index.js --bundle --watch &
+        parcel serve -p ${PORT_DOCKER} --host ${HOST_DOCKER} dev/index.html &
+        wait

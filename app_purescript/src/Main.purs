@@ -64,7 +64,6 @@ noTimeHtml = HH.div_
   [ HH.h1_ [ HH.text "Current Moscow time (UTC+3:00) ... ?" ]
   ]
 
--- handleAction :: forall output. Action -> H.HalogenM State Action () output Aff Action
 handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   Init -> do
@@ -77,8 +76,6 @@ handleAction = case _ of
         offsetUTCPlus3 = 3 * 60 * 60 * 1000
         curDateTime' = adjust (TD.Milliseconds $ toNumber offsetUTCPlus3) curDateTime
       H.modify_ $ (\_ -> curDateTime')
-
--- TODO auto-reload
 
 type State = Maybe DateTime
 

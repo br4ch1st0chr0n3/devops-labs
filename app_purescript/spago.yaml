@@ -1,0 +1,24 @@
+package:
+  dependencies:
+    - aff
+    - console
+    - datetime
+    - effect
+    - formatters
+    - halogen
+    - halogen-subscriptions
+    - integers
+    - lists
+    - maybe
+    - now
+    - prelude
+    - tailrec
+  name: my-project
+  publish:
+    version: 0.1.0
+    license: BSD-3-Clause
+workspace:
+  lock: true
+  extra_packages: {}
+  package_set:
+    registry: 30.0.0

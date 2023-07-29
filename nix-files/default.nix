@@ -1,7 +1,7 @@
 { inputs, system }:
 let
   pkgs = inputs.nixpkgs.legacyPackages.${system};
-  inherit (inputs.codium.lib.${system}) mkCodium extensions extensionsCommon settingsCommonNix settingsCommon;
+  inherit (inputs.codium.lib.${system}) mkCodium extensions extensionsCommon settingsNix;
   inherit (inputs.drv-tools.lib.${system}) toList mkShellApp mkShellApps mkBin framedBrackets framedNewlines;
   inherit (inputs.flakes-tools.lib.${system}) mkFlakesTools;
   inherit (inputs.devshell.lib.${system}) mkCommands mkRunCommands mkShell;
@@ -23,8 +23,7 @@ let
 
   tools = attrValues {
     inherit (pkgs)
-      docker poetry
-      terraform terraform-ls
+      docker poetry terraform terraform-ls
       kubernetes minikube kubernetes-helm
       sops age hadolint python3Full
       ;

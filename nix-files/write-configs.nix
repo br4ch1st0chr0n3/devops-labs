@@ -19,7 +19,7 @@ let
   writers = __mapAttrs (pname: value: value // { inherit pname; }) {
     writeDocs = nix2md "README/docs.md" (import ./docs.nix { inherit pkgs inputs system; });
     writeMarkdownlintConfig = writeJSON "markdownlint" ".markdownlint.jsonc" (import ./markdownlint-config.nix);
-    writeSettings = writeSettingsJSON (import ./settings.nix { inherit settingsNix pkgs system inputs; });
+    writeSettings = writeSettingsJSON (import ./settings.nix { inherit pkgs system inputs; });
     writeTasks = writeTasksJSON (import ./tasks.nix { inherit commands inputs system; });
     writeTerraform =
       let

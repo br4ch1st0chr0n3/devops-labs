@@ -1,72 +1,51 @@
-{ settingsNix, pkgs, system, inputs }:
+{ pkgs, system, inputs }:
 let
   inherit (import ./data.nix) appPurescript;
-  inherit (inputs.drv-tools.lib.${system}) mkBinName;
+  inherit (inputs.workflows.lib.${system}) settingsNix settingsCommonNix;
 in
+pkgs.lib.attrsets.recursiveUpdate
+  settingsCommonNix
 {
-  inherit (settingsNix)
-    todo-tree
-    files
-    editor
-    gitlens
-    git
-    nix-ide
-    workbench
-    markdown-all-in-one
-    yaml
-    ;
-  add =
-    let
-      ide-purescript = settingsNix.ide-purescript //
-        {
-          "purescript.outputDirectory" = "./${appPurescript}/output/";
-          "purescript.packagePath" = "./${appPurescript}";
-          "purescript.sourcePath" = "./${appPurescript}/src";
-        };
-      python = settingsNix.python // {
-        "python.defaultInterpreterPath" = "\${workspaceFolder}/.venv/bin/python3";
-      };
-      formatters = {
-        "[html]" = {
-          "editor.defaultFormatter" = "monosans.djlint";
-        };
-        "[markdown]" = {
-          "editor.defaultFormatter" = "DavidAnson.vscode-markdownlint";
-        };
-      };
-      linters = {
-        "python.linting.pylintEnabled" = true;
-      };
-      schemas = {
-        "json.schemas" = [
-          {
-            "fileMatch" = [
-              "**/*.markdownlint.json"
-            ];
-            "url" = "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json";
-          }
-          {
-            "fileMatch" = [
-              "**/pyproject.toml"
-            ];
-            "url" = "https://json.schemastore.org/pyproject.json";
-          }
+  inherit (settingsNix) python ide-purescript;
+  extra = {
+    # "purescript.outputDirectory" = "./${appPurescript}/output/";
+    # "purescript.packagePath" = "./${appPurescript}";
+    # "purescript.sourcePath" = "./${appPurescript}/src";
+
+    "[html]" = {
+      "editor.defaultFormatter" = "monosans.djlint";
+    };
+    "[markdown]" = {
+      "editor.defaultFormatter" = "DavidAnson.vscode-markdownlint";
+    };
+
+    "python.linting.pylintEnabled" = true;
+
+    "json.schemas" = [
+      {
+        "fileMatch" = [
+          "**/*.markdownlint.json"
         ];
-      };
-      markdownlint = {
-        "markdownlint.lintWorkspaceGlobs" = [
-          "**/*.{md,mkd,mdwn,mdown,markdown,markdn,mdtxt,mdtext,workbook}"
-          "!**/bower_components"
-          "!**/node_modules"
-          "!**/vendor"
-          "!**/.*"
+        "url" = "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json";
+      }
+      {
+        "fileMatch" = [
+          "**/pyproject.toml"
         ];
-        "markdownlint.config" = import ./markdownlint-config.nix;
-      };
-      terraform = {
-        "terraform.languageServer.path" = mkBinName pkgs.terraform-ls "terraform-ls";
-        "terraform.languageServer.terraform.path" = mkBinName pkgs.terraform "terraform";
-      };
-    in
-    ide-purescript // python // formatters // linters // schemas // markdownlint // terraform;
+        "url" = "https://json.schemastore.org/pyproject.json";
+      }
+    ];
+
+    "markdownlint.lintWorkspaceGlobs" = [
+      "**/*.{md,mkd,mdwn,mdown,markdown,markdn,mdtxt,mdtext,workbook}"
+      "!**/bower_components"
+      "!**/node_modules"
+      "!**/vendor"
+      "!**/.*"
+    ];
+    "markdownlint.config" = import ./markdownlint-config.nix;
+
+    "terraform.languageServer.path" = "${pkgs.terraform-ls}/bin/terraform-ls";
+    "terraform.languageServer.terraform.path" = "${pkgs.terraform}/bin/terraform";
+  };
 }

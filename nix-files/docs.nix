@@ -73,7 +73,7 @@ in
 (
   let
     actionNames_ = actionNames.apps // { stop = "stop"; };
-    mkJSON = inputs.env2json.lib.${system}.mkJSON;
+    inherit ((import ../env2json { inherit pkgs; }).lib) mkJSON;
     ports =
       builtins.foldl' (a: b: a // b) { } (builtins.map
         (lang:

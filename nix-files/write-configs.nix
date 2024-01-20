@@ -12,8 +12,9 @@ let
     ;
   inherit (inputs.codium.lib.${system}) settingsNix writeSettingsJSON writeTasksJSON;
   inherit (import ./data.nix) commandNames taskNames appPurescript appPython DOCKER_PORT HOST_PORT;
-  inherit (inputs.json2md.lib.${system}) nix2md;
   inherit (builtins) map;
+
+  inherit ((import ../json2md { inherit (inputs) drv-tools; inherit pkgs; }).lib.${system}) nix2md;
 
   # all scripts assume calling from the $PROJECT_ROOT
   writers = __mapAttrs (pname: value: value // { inherit pname; }) {

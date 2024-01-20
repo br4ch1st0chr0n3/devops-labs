@@ -14,7 +14,7 @@ let
   inherit (import ./data.nix) commandNames taskNames appPurescript appPython DOCKER_PORT HOST_PORT;
   inherit (builtins) map;
 
-  inherit ((import ../json2md { inherit (inputs) drv-tools; inherit pkgs; }).lib.${system}) nix2md;
+  inherit ((import ../json2md { inherit (inputs) drv-tools; inherit pkgs; })) nix2md;
 
   # all scripts assume calling from the $PROJECT_ROOT
   writers = __mapAttrs (pname: value: value // { inherit pname; }) {
